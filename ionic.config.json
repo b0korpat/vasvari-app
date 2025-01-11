@@ -1,0 +1,8 @@
+{
+  "name": "vasvariApp",
+  "integrations": {
+    "capacitor": {}
+  },
+  "type": "vue-vite",
+  "id": "bb9e8d55"
+}
