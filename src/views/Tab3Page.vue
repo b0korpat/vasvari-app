@@ -1,23 +1,55 @@
 <template>
   <ion-page>
-    <ion-header>
-      <ion-toolbar>
-        <ion-title>Tab 3</ion-title>
-      </ion-toolbar>
-    </ion-header>
     <ion-content :fullscreen="true">
-      <ion-header collapse="condense">
-        <ion-toolbar>
-          <ion-title size="large">Tab 3</ion-title>
-        </ion-toolbar>
-      </ion-header>
-
-      <ExploreContainer name="Tab 3 page" />
+      <div v-if="loading" class="pink-text">Loading...</div>
+      <pre v-else class="pink-text">{{ jsonData }}</pre>
     </ion-content>
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent } from '@ionic/vue';
-import ExploreContainer from '@/components/ExploreContainer.vue';
+import { ref, onMounted } from 'vue';
+import { IonPage, IonContent } from '@ionic/vue';
+
+const loading = ref(true);
+const jsonData = ref(null);
+
+const fetchData = async () => {
+  try {
+    const response = await fetch('https://localhost:7116/api/lesson');
+    const contentType = response.headers.get('content-type');
+    if (!response.ok) {
+      throw new Error('Network response was not ok');
+    }
+    if (contentType && contentType.includes('application/json')) {
+      const data = await response.json();
+      jsonData.value = data;
+    } else {
+      const text = await response.text();
+      console.error('Unexpected response format:', text);
+      throw new Error('Unexpected response format');
+    }
+  } catch (error) {
+    console.error('Error fetching data:', error);
+  } finally {
+    loading.value = false;
+  }
+};
+
+onMounted(() => {
+  fetchData();
+});
 </script>
+
+<style scoped>
+.pink-text {
+  color: pink;
+}
+pre {
+  white-space: pre-wrap;
+  word-wrap: break-word;
+  background-color: #f8f8f8;
+  padding: 16px;
+  border-radius: 8px;
+}
+</style>
