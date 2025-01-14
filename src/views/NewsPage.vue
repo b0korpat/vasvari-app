@@ -21,6 +21,8 @@
 import { IonPage, IonContent, IonToolbar, IonButtons, IonButton, IonIcon, IonLabel } from '@ionic/vue';
 import ExploreContainer from '@/components/ExploreContainer.vue';
 import { notifications } from 'ionicons/icons';
+
+
 </script>
 
 <style scoped>

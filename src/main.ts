@@ -29,10 +29,16 @@ import '@ionic/vue/css/display.css';
 
 /* @import '@ionic/vue/css/palettes/dark.always.css'; */
 /* @import '@ionic/vue/css/palettes/dark.class.css'; */
-import '@ionic/vue/css/palettes/dark.system.css';
+import '@ionic/vue/css/palettes/dark.class.css';
+import '@ionic/vue/css/palettes/high-contrast.class.css';
+
+document.documentElement.classList.toggle('ion-palette-dark', true);
+document.documentElement.classList.toggle('ion-palette-high-contrast', false);
+
 
 /* Theme variables */
 import './theme/variables.css';
+
 
 const app = createApp(App)
   .use(IonicVue)

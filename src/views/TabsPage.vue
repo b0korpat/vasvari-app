@@ -15,7 +15,7 @@
         </ion-tab-button>
 
         <ion-tab-button tab="profile" href="/tabs/profile">
-          <ion-icon aria-hidden="true" :icon="person" />
+          <ion-icon aria-hidden="true" :icon="person"/>
           <ion-label>Profil</ion-label>
         </ion-tab-button>
 
@@ -23,6 +23,7 @@
           <ion-icon aria-hidden="true" :icon="square" />
           <ion-label>Tab 3</ion-label>
         </ion-tab-button>
+
 
       </ion-tab-bar>
     </ion-tabs>

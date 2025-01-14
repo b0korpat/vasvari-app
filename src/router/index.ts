@@ -30,7 +30,12 @@ const routes: Array<RouteRecordRaw> = [
       {
         path: 'timetable',
         component: () => import('@/views/TimetablePage.vue')
+      },
+      {
+        path: 'settings',
+        component: () => import('@/views/SettingsPage.vue')
       }
+
     ]
   }
 ];
