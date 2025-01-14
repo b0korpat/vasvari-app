@@ -25,38 +25,54 @@
           v-for="(day, index) in daysOfWeek"
           :key="day"
           :fill="selectedDayIndex === index ? 'solid' : 'outline'"
-          @click="selectDay(index)"
+          @click="goToSlide(index)"
           class="day-button"
         >
           {{ getDayAbbreviation(new Date(day).getDay()) }}
         </ion-button>
       </div>
-      <Carousel :itemsToShow="1" :modelValue="selectedDayIndex" @update:modelValue="updateSelectedDay">
-        <Slide v-for="(day, index) in daysOfWeek" :key="day">
+      <swiper
+        :slides-per-view="1"
+        :initial-slide="selectedDayIndex"
+        @slideChange="onSlideChange"
+        @swiper="onSwiperInit"
+      >
+        <swiper-slide v-for="(day, index) in daysOfWeek" :key="day">
           <div class="day-container">
             <div>{{ day }}</div>
-            <div v-for="lesson in lessonsByDay[day]" :key="lesson.id" class="lesson">
-              <div>Lesson ID: {{ lesson.id }}</div>
-              <div>Start Time: {{ new Date(lesson.startTime).toLocaleString() }}</div>
+            <div class="lessons-container">
+              <div
+                v-for="lesson in lessonsByDay[day]"
+                :key="lesson.id"
+                class="lesson-box"
+              >
+                <div>Subject: {{ lesson.subjectName }}</div>
+                <div>Teacher: {{ lesson.teacherName }}</div>
+                <div>Classroom: {{ lesson.classroomName }}</div>
+                <div>Start Time: {{ new Date(lesson.date).toLocaleString() }}</div>
+              </div>
             </div>
           </div>
-        </Slide>
-      </Carousel>
+        </swiper-slide>
+      </swiper>
     </ion-content>
   </ion-page>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { IonPage, IonContent, IonButton, IonIcon, IonLabel } from '@ionic/vue';
-import { arrowBackOutline, arrowForwardOutline, notifications } from 'ionicons/icons';
-import { Carousel, Slide } from 'vue3-carousel';
-import 'vue3-carousel/dist/carousel.css';
+import { Swiper, SwiperSlide } from 'swiper/vue';
+import 'swiper/swiper-bundle.css';import {
+  arrowBackOutline,
+  arrowForwardOutline,
+  notifications,
+} from 'ionicons/icons';
 
 const currentWeek = ref('');
 const daysOfWeek = ref<string[]>([]);
 const selectedDayIndex = ref(0);
 const lessonsByDay = ref<Record<string, any[]>>({});
+const swiperRef = ref<any>(null); // Ref for Swiper instance
 
 const formatDate = (date: Date) => {
   const year = date.getFullYear();
@@ -74,7 +90,7 @@ const getCurrentWeek = () => {
   const now = new Date();
   const dayOfWeek = now.getDay();
   const monday = new Date(now);
-  monday.setDate(now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1)); // Adjust when today is Sunday
+  monday.setDate(now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1));
   const sunday = new Date(monday);
   sunday.setDate(monday.getDate() + 6);
 
@@ -88,23 +104,60 @@ const getCurrentWeek = () => {
 
 const fetchLessons = async () => {
   try {
-    const response = await fetch('https://localhost:7116/api/lesson');
-    if (!response.ok) {
+    const [lessonsResponse, subjectsResponse, teachersResponse, classroomsResponse] =
+      await Promise.all([
+        fetch('https://7ffc-188-157-38-153.ngrok-free.app/Lesson'),
+        fetch('https://7ffc-188-157-38-153.ngrok-free.app/Subject'),
+        fetch('https://7ffc-188-157-38-153.ngrok-free.app/Teacher'),
+        fetch('https://7ffc-188-157-38-153.ngrok-free.app/ClassRoom'),
+      ]);
+
+    if (
+      !lessonsResponse.ok ||
+      !subjectsResponse.ok ||
+      !teachersResponse.ok ||
+      !classroomsResponse.ok
+    ) {
       throw new Error('Network response was not ok');
     }
-    const lessons = await response.json();
+
+    const lessons = await lessonsResponse.json();
+    const subjects = await subjectsResponse.json();
+    const teachers = await teachersResponse.json();
+    const classrooms = await classroomsResponse.json();
+
+    const subjectsMap = Object.fromEntries(
+      subjects.map((subject: any) => [subject.id, subject.name])
+    );
+    const teachersMap = Object.fromEntries(
+      teachers.map((teacher: any) => [teacher.id, teacher.name])
+    );
+    const classroomsMap = Object.fromEntries(
+      classrooms.map((classroom: any) => [classroom.id, classroom.name])
+    );
+
     const groupedLessons: Record<string, any[]> = {};
-    daysOfWeek.value.forEach(day => {
-      groupedLessons[day] = lessons.filter((lesson: any) => formatDate(new Date(lesson.startTime)) === day);
+    daysOfWeek.value.forEach((day) => {
+      groupedLessons[day] = lessons
+        .filter((lesson: any) => formatDate(new Date(lesson.date)) === day)
+        .map((lesson: any) => ({
+          ...lesson,
+          subjectName: subjectsMap[lesson.subjectId],
+          teacherName: teachersMap[lesson.teacherId],
+          classroomName: classroomsMap[lesson.classroomId],
+        }));
     });
     lessonsByDay.value = groupedLessons;
+    console.log('Lessons by day:', lessonsByDay.value);
   } catch (error) {
     console.error('Error fetching lessons:', error);
   }
 };
 
 const prevWeek = () => {
-  const [start, end] = currentWeek.value.split(' - ').map(date => new Date(date.replace(/\./g, '-')));
+  const [start, end] = currentWeek.value
+    .split(' - ')
+    .map((date) => new Date(date.replace(/\./g, '-')));
   start.setDate(start.getDate() - 7);
   end.setDate(end.getDate() - 7);
   currentWeek.value = `${formatDate(start)} - ${formatDate(end)}`;
@@ -115,10 +168,13 @@ const prevWeek = () => {
   });
   selectedDayIndex.value = 0;
   fetchLessons();
+  goToSlide(0); // Navigate to Monday
 };
 
 const nextWeek = () => {
-  const [start, end] = currentWeek.value.split(' - ').map(date => new Date(date.replace(/\./g, '-')));
+  const [start, end] = currentWeek.value
+    .split(' - ')
+    .map((date) => new Date(date.replace(/\./g, '-')));
   start.setDate(start.getDate() + 7);
   end.setDate(end.getDate() + 7);
   currentWeek.value = `${formatDate(start)} - ${formatDate(end)}`;
@@ -129,22 +185,33 @@ const nextWeek = () => {
   });
   selectedDayIndex.value = 0;
   fetchLessons();
+  goToSlide(0); // Navigate to Monday
 };
 
-const selectDay = (index: number) => {
-  selectedDayIndex.value = index;
+const onSwiperInit = (swiperInstance: any) => {
+  swiperRef.value = swiperInstance; // Capture Swiper instance
 };
 
-const updateSelectedDay = (index: number) => {
-  selectedDayIndex.value = index;
+const goToSlide = (index: number) => {
+  if (swiperRef.value) {
+    swiperRef.value.slideTo(index); // Navigate to the corresponding slide
+    selectedDayIndex.value = index;
+  }
+};
+
+const onSlideChange = (swiper: any) => {
+  selectedDayIndex.value = swiper.activeIndex;
 };
 
 onMounted(() => {
   getCurrentWeek();
   fetchLessons();
+  const today = new Date();
+  const dayOfWeek = today.getDay();
+  selectedDayIndex.value = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Adjust for Sunday being 0
+  goToSlide(selectedDayIndex.value);
 });
 </script>
-
 <style scoped>
 .seamless-toolbar {
   --background: transparent;
@@ -196,17 +263,24 @@ ion-content {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100px;
+  height: auto;
   border-radius: 8px;
   margin: 16px;
   padding: 16px;
   font-size: 1.2em;
 }
-.lesson {
+.lessons-container {
+  max-height: 400px; /* Adjust the height as needed */
+  overflow-y: auto;
+  width: 100%;
+}
+.lesson-box {
   margin-top: 8px;
-  padding: 8px;
-  border-radius: 4px;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
   width: 100%;
   text-align: center;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 </style>
