@@ -31,9 +31,29 @@ import '@ionic/vue/css/display.css';
 /* @import '@ionic/vue/css/palettes/dark.class.css'; */
 import '@ionic/vue/css/palettes/dark.class.css';
 import '@ionic/vue/css/palettes/high-contrast.class.css';
+const theme = localStorage.getItem('theme') || 'system';
+if (theme === 'dark') {
+  document.documentElement.classList.toggle('ion-palette-dark', true);
+  document.documentElement.classList.toggle('ion-palette-high-contrast', false);
+}else if (theme === 'light') {
+  document.documentElement.classList.toggle('ion-palette-dark', false);
+  document.documentElement.classList.toggle('ion-palette-high-contrast', true);
+}
+else if (theme === 'system') {
+  const isLightMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  if (isLightMode) {
+    console.log('The device is in light mode.');
+    // Apply light mode theme
+    document.documentElement.classList.toggle('ion-palette-dark', true);
+    document.documentElement.classList.toggle('ion-palette-high-contrast', false);
+  } else {
+    console.log('The device is not in light mode.');
+    // Apply dark mode theme
+    document.documentElement.classList.toggle('ion-palette-dark', false);
+    document.documentElement.classList.toggle('ion-palette-high-contrast', true);
+  }
+  }
 
-document.documentElement.classList.toggle('ion-palette-dark', true);
-document.documentElement.classList.toggle('ion-palette-high-contrast', false);
 
 
 /* Theme variables */
