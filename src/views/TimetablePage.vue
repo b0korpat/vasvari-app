@@ -21,16 +21,23 @@
         </ion-button>
       </div>
       <div class="day-buttons">
-        <ion-button
-          v-for="(day, index) in daysOfWeek"
-          :key="day"
-          :fill="selectedDayIndex === index ? 'solid' : 'outline'"
-          @click="goToSlide(index)"
-          class="day-button"
-        >
-          {{ getDayAbbreviation(new Date(day).getDay()) }}
-        </ion-button>
-      </div>
+  <div v-for="(day, index) in daysOfWeek" :key="day" class="day-button-container">
+    <ion-button
+      :fill="selectedDayIndex === index ? 'solid' : 'outline'"
+      @click="goToSlide(index)"
+      class="day-button"
+    >
+      {{ getDayAbbreviation(new Date(day).getDay()) }}
+    </ion-button>
+    <div
+      class="day-number"
+      :class="{'current-day': isCurrentDay(day)}"
+    >
+      {{ new Date(day).getDate() }}
+    </div>
+  </div>
+</div>
+
       <swiper
         :slides-per-view="1"
         :initial-slide="selectedDayIndex"
@@ -73,6 +80,12 @@ const daysOfWeek = ref<string[]>([]);
 const selectedDayIndex = ref(0);
 const lessonsByDay = ref<Record<string, any[]>>({});
 const swiperRef = ref<any>(null); // Ref for Swiper instance
+
+const isCurrentDay = (day: string) => {
+  const today = new Date();
+  const dayOfMonth = new Date(day).getDate();
+  return today.getDate() === dayOfMonth && today.getMonth() === new Date(day).getMonth() && today.getFullYear() === new Date(day).getFullYear();
+};
 
 const formatDate = (date: Date) => {
   const year = date.getFullYear();
@@ -258,6 +271,25 @@ ion-content {
   padding: 0;
   text-align: center;
 }
+
+.day-button-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: 0 4px;
+}
+
+.day-number {
+  font-size: 0.8em;
+  margin-top: 4px;
+  color: #666; /* Default color */
+}
+
+.current-day {
+  color: red; /* Highlight current day in red */
+  font-weight: bold; /* Optional: Make the text bold for better visibility */
+}
+
 .day-container {
   display: flex;
   flex-direction: column;
@@ -270,7 +302,7 @@ ion-content {
   font-size: 1.2em;
 }
 .lessons-container {
-  max-height: 400px; /* Adjust the height as needed */
+  max-height: 60vh; /* Adjust the height as needed */
   overflow-y: auto;
   width: 100%;
 }
