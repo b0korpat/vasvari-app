@@ -21,8 +21,11 @@
 import { IonPage, IonContent, IonToolbar, IonButtons, IonButton, IonIcon, IonLabel } from '@ionic/vue';
 import ExploreContainer from '@/components/ExploreContainer.vue';
 import { notifications } from 'ionicons/icons';
+import { onMounted } from 'vue';
 
-
+onMounted(() => {
+  console.log('NewsPage mounted');
+});
 </script>
 
 <style scoped>

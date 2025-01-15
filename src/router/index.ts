@@ -1,6 +1,8 @@
 import { createRouter, createWebHistory } from '@ionic/vue-router';
 import { RouteRecordRaw } from 'vue-router';
 import TabsPage from '../views/TabsPage.vue';
+import LogInPage from '../views/LoginPage.vue';
+import SupabaseRegisterPage from '../views/SupabaseRegisterPage.vue';
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -37,6 +39,14 @@ const routes: Array<RouteRecordRaw> = [
       }
 
     ]
+  },
+  {
+    path: '/login',
+    component: LogInPage
+  },
+  {
+    path: '/supabase-register',
+    component: SupabaseRegisterPage
   }
 ];
 
