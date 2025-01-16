@@ -4,6 +4,7 @@ import { ref } from 'vue';
 export const useUserStore = defineStore('user', () => {
   const firstName = ref<string>('');
   const lastName = ref<string>('');
+  const email = ref<string>('');
 
   const setFirstName = (newFirstName: string) => {
     firstName.value = newFirstName;
@@ -13,10 +14,15 @@ export const useUserStore = defineStore('user', () => {
     lastName.value = newLastName;
   };
 
+  const setEmail = (newEmail: string) => {
+    email.value = newEmail;
+  };
+
   const clearUser = () => {
     firstName.value = '';
     lastName.value = '';
+    email.value = '';
   };
 
-  return { firstName, lastName, setFirstName, setLastName, clearUser };
+  return { firstName, lastName, email, setFirstName, setLastName, setEmail, clearUser };
 });

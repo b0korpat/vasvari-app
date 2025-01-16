@@ -3,7 +3,6 @@ import { RouteRecordRaw } from 'vue-router';
 import TabsPage from '../views/TabsPage.vue';
 import LogInPage from '../views/userManagement/LoginPage.vue';
 import RegisterPage from '../views/userManagement/RegisterPage.vue';
-import UpdatePasswordPage from '../views/userManagement/UpdatePasswordPage.vue';
 
 const routes: Array<RouteRecordRaw> = [
   {
@@ -48,10 +47,6 @@ const routes: Array<RouteRecordRaw> = [
   {
     path: '/register',
     component: RegisterPage
-  },
-  {
-    path: '/update-password',
-    component: UpdatePasswordPage
   }
 ];
 

@@ -12,7 +12,9 @@
           </ion-button>
         </ion-buttons>
       </ion-toolbar>
-      <ExploreContainer name="NewsPage" />
+      <div class="page-load-animation">
+      <h2>Hírek</h2>
+      </div>
     </ion-content>
   </ion-page>
 </template>
@@ -22,15 +24,17 @@ import { IonPage, IonContent, IonToolbar, IonButtons, IonButton, IonIcon, IonLab
 import ExploreContainer from '@/components/ExploreContainer.vue';
 import { notifications } from 'ionicons/icons';
 import { onMounted, ref } from 'vue';
-import {first_name, fetchFullName} from '@/components/AuthFunctions'
+import {first_name, fetchUser} from '@/components/AuthFunctions'
 
 
 onMounted(async () => {
-fetchFullName();
+  fetchUser();
 });
 </script>
 
 <style scoped>
+
+
 .seamless-toolbar {
   --background: transparent;
   --border-color: transparent;

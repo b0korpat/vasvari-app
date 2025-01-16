@@ -93,8 +93,6 @@ const validateEmailField = () => {
 const validatePasswordField = () => {
   if (!password.value) {
     errorMessage.value.password = 'A jelszó mező kitöltése kötelező';
-  } else if (password.value.length < 6) {
-    errorMessage.value.password = 'A jelszónak legalább 6 karakter hosszúnak kell lennie';
   } else {
     errorMessage.value.password = '';
   }
@@ -124,7 +122,9 @@ const forgotPassword = async () => {
     return;
   }
 
-  const { error } = await supabase.auth.resetPasswordForEmail(email.value);
+  const { error } = await supabase.auth.resetPasswordForEmail(email.value, {
+          redirectTo: `http://localhost:5173/reset-password`,
+        });
   if (error) {
     confirmationMessage.value = 'Hiba az email küldéssel: ' + error.message;
   } else {

@@ -1,5 +1,5 @@
 <template>
-  <ion-page>
+  <ion-page >
     <ion-content :fullscreen="true">
       <ion-toolbar class="seamless-toolbar">
         <ion-buttons slot="start">
@@ -11,6 +11,8 @@
           </ion-button>
         </ion-buttons>
       </ion-toolbar>
+
+      <div class="page-load-animation">
       <div class="week-selector">
         <ion-button @click="prevWeek" fill="clear" class="arrow-button">
           <ion-icon :icon="arrowBackOutline"></ion-icon>
@@ -62,17 +64,18 @@
           </div>
         </swiper-slide>
       </swiper>
+    </div>
     </ion-content>
   </ion-page>
 </template>
 
 <script setup lang="ts">
+import { IonPage, IonButton, IonContent, IonIcon, IonLabel, IonButtons, IonToolbar} from '@ionic/vue';
 import { ref, onMounted } from 'vue';
 import { Swiper, SwiperSlide } from 'swiper/vue';
 import 'swiper/swiper-bundle.css';
 import { arrowBackOutline, arrowForwardOutline, notifications } from 'ionicons/icons';
-import {first_name, fetchFullName} from '@/components/AuthFunctions'
-
+import { first_name, fetchUser } from '@/components/AuthFunctions';
 
 
 const currentWeek = ref('');
@@ -217,17 +220,19 @@ const onSlideChange = (swiper: any) => {
 };
 
 onMounted(async () => {
-  fetchFullName();
+  fetchUser();
   getCurrentWeek();
   fetchLessons();
   const today = new Date();
   const dayOfWeek = today.getDay();
   selectedDayIndex.value = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Adjust for Sunday being 0
   goToSlide(selectedDayIndex.value);
+  
 });
 </script>
 
 <style scoped>
+
 .seamless-toolbar {
   --background: transparent;
   --border-color: transparent;

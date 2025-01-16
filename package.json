@@ -21,6 +21,7 @@
     "@formkit/auto-animate": "^0.8.2",
     "@ionic/vue": "^8.0.0",
     "@ionic/vue-router": "^8.0.0",
+    "@supabase/ssr": "^0.4.1",
     "@supabase/supabase-js": "^2.47.13",
     "ionicons": "^7.0.0",
     "pinia": "^2.3.0",
