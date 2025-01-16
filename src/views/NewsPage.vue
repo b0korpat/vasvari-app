@@ -4,7 +4,7 @@
     <ion-content :fullscreen="true">
       <ion-toolbar class="seamless-toolbar">
         <ion-buttons slot="start">
-          <ion-label class="large-text">Szia, XY!</ion-label>
+          <ion-label class="large-text">Szia, {{ first_name }}!</ion-label>
         </ion-buttons>
         <ion-buttons slot="end">
           <ion-button>
@@ -21,10 +21,12 @@
 import { IonPage, IonContent, IonToolbar, IonButtons, IonButton, IonIcon, IonLabel } from '@ionic/vue';
 import ExploreContainer from '@/components/ExploreContainer.vue';
 import { notifications } from 'ionicons/icons';
-import { onMounted } from 'vue';
+import { onMounted, ref } from 'vue';
+import {first_name, fetchFullName} from '@/components/AuthFunctions'
 
-onMounted(() => {
-  console.log('NewsPage mounted');
+
+onMounted(async () => {
+fetchFullName();
 });
 </script>
 

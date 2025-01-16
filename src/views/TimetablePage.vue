@@ -3,7 +3,7 @@
     <ion-content :fullscreen="true">
       <ion-toolbar class="seamless-toolbar">
         <ion-buttons slot="start">
-          <ion-label class="large-text">Szia, XY!</ion-label>
+          <ion-label class="large-text">Szia, {{ first_name }}!</ion-label>
         </ion-buttons>
         <ion-buttons slot="end">
           <ion-button>
@@ -21,22 +21,22 @@
         </ion-button>
       </div>
       <div class="day-buttons">
-  <div v-for="(day, index) in daysOfWeek" :key="day" class="day-button-container">
-    <ion-button
-      :fill="selectedDayIndex === index ? 'solid' : 'outline'"
-      @click="goToSlide(index)"
-      class="day-button"
-    >
-      {{ getDayAbbreviation(new Date(day).getDay()) }}
-    </ion-button>
-    <div
-      class="day-number"
-      :class="{'current-day': isCurrentDay(day)}"
-    >
-      {{ new Date(day).getDate() }}
-    </div>
-  </div>
-</div>
+        <div v-for="(day, index) in daysOfWeek" :key="day" class="day-button-container">
+          <ion-button
+            :fill="selectedDayIndex === index ? 'solid' : 'outline'"
+            @click="goToSlide(index)"
+            class="day-button"
+          >
+            {{ getDayAbbreviation(new Date(day).getDay()) }}
+          </ion-button>
+          <div
+            class="day-number"
+            :class="{'current-day': isCurrentDay(day)}"
+          >
+            {{ new Date(day).getDate() }}
+          </div>
+        </div>
+      </div>
 
       <swiper
         :slides-per-view="1"
@@ -69,11 +69,11 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
 import { Swiper, SwiperSlide } from 'swiper/vue';
-import 'swiper/swiper-bundle.css';import {
-  arrowBackOutline,
-  arrowForwardOutline,
-  notifications,
-} from 'ionicons/icons';
+import 'swiper/swiper-bundle.css';
+import { arrowBackOutline, arrowForwardOutline, notifications } from 'ionicons/icons';
+import {first_name, fetchFullName} from '@/components/AuthFunctions'
+
+
 
 const currentWeek = ref('');
 const daysOfWeek = ref<string[]>([]);
@@ -119,10 +119,10 @@ const fetchLessons = async () => {
   try {
     const [lessonsResponse, subjectsResponse, teachersResponse, classroomsResponse] =
       await Promise.all([
-        fetch('https://7ffc-188-157-38-153.ngrok-free.app/Lesson'),
-        fetch('https://7ffc-188-157-38-153.ngrok-free.app/Subject'),
-        fetch('https://7ffc-188-157-38-153.ngrok-free.app/Teacher'),
-        fetch('https://7ffc-188-157-38-153.ngrok-free.app/ClassRoom'),
+        fetch('https://779f-188-157-38-153.ngrok-free.app/Lesson'),
+        fetch('https://779f-188-157-38-153.ngrok-free.app/Subject'),
+        fetch('https://779f-188-157-38-153.ngrok-free.app/Teacher'),
+        fetch('https://779f-188-157-38-153.ngrok-free.app/ClassRoom'),
       ]);
 
     if (
@@ -216,7 +216,8 @@ const onSlideChange = (swiper: any) => {
   selectedDayIndex.value = swiper.activeIndex;
 };
 
-onMounted(() => {
+onMounted(async () => {
+  fetchFullName();
   getCurrentWeek();
   fetchLessons();
   const today = new Date();
@@ -225,6 +226,7 @@ onMounted(() => {
   goToSlide(selectedDayIndex.value);
 });
 </script>
+
 <style scoped>
 .seamless-toolbar {
   --background: transparent;
@@ -284,9 +286,8 @@ ion-content {
   margin-top: 4px;
   color: #666; /* Default color */
 }
-
 .current-day {
-  color: red; /* Highlight current day in red */
+  color: var(--ion-color-primary); /* Highlight current day in ionic primary color */
   font-weight: bold; /* Optional: Make the text bold for better visibility */
 }
 

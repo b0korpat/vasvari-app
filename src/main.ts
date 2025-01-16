@@ -64,7 +64,7 @@ if (theme === 'system') {
 
 /* Theme variables */
 import './theme/variables.css';
-
+import { supabase } from '@/supabase';
 
 const app = createApp(App)
   .use(IonicVue)
@@ -73,6 +73,20 @@ const app = createApp(App)
 const pinia = createPinia();
 app.use(pinia);
 
-router.isReady().then(() => {
-  app.mount('#app');
+router.isReady().then(async () => {
+  const { data: { session } } = await supabase.auth.getSession();
+  const publicPaths = ['/update-password', '/register'];
+  if (publicPaths.includes(router.currentRoute.value.path)) {
+    app.mount('#app');
+  } else if (session) {
+    if (router.currentRoute.value.path !== '/tabs/news') {
+      await router.push('/tabs/news');
+      location.reload();
+    } else {
+      app.mount('#app');
+    }
+  } else {
+    await router.push('/login');
+    app.mount('#app');
+  }
 });

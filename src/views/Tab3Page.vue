@@ -16,7 +16,7 @@ const jsonData = ref(null);
 
 const fetchData = async () => {
   try {
-    const response = await fetch('https://7ffc-188-157-38-153.ngrok-free.app/Lesson');
+    const response = await fetch('https://779f-188-157-38-153.ngrok-free.app/Lesson');
     const contentType = response.headers.get('content-type');
     if (!response.ok) {
       throw new Error('Network response was not ok');

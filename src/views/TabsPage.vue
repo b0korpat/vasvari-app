@@ -1,6 +1,6 @@
 <template>
   <ion-page>
-    <ion-tabs>
+    <ion-tabs ref="tabs">
       <ion-router-outlet :key="$route.fullPath"></ion-router-outlet>
       <ion-tab-bar slot="bottom">
 
