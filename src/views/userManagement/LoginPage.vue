@@ -123,7 +123,7 @@ const forgotPassword = async () => {
   }
 
   const { error } = await supabase.auth.resetPasswordForEmail(email.value, {
-          redirectTo: `http://localhost:5173/reset-password`,
+          redirectTo: `https://pwteszt.vercel.app/reset-password`,
         });
   if (error) {
     confirmationMessage.value = 'Hiba az email küldéssel: ' + error.message;

@@ -25,6 +25,7 @@
 import { ref, watch } from 'vue';
 import { IonPage, IonHeader, IonToolbar, IonTitle, IonContent, IonItem, IonLabel, IonSelect, IonSelectOption, IonButtons, IonBackButton, modalController } from '@ionic/vue';
 
+
 const selectedTheme = ref(localStorage.getItem('theme') || 'system');
 
 watch(selectedTheme, (newValue) => {

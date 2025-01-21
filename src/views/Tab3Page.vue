@@ -1,55 +1,75 @@
 <template>
-  <ion-page>
-    <ion-content :fullscreen="true">
-      <div v-if="loading" class="pink-text">Loading...</div>
-      <pre v-else class="pink-text">{{ jsonData }}</pre>
-    </ion-content>
-  </ion-page>
+  <ion-content ref="content">
+    <div>
+      <div class="news-list">
+        <div v-for="newsItem in news" :key="newsItem.id" class="news-box">
+          <h3>{{ newsItem.title }}</h3>
+          <p>{{ newsItem.description }}</p>
+          <small>{{ new Date(newsItem.postdate).toLocaleDateString() }}</small>
+        </div>
+      </div>
+    </div>
+    <ion-button expand="block" @click="scrollToTop()">Scroll to Top</ion-button>
+  </ion-content>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue';
-import { IonPage, IonContent } from '@ionic/vue';
+import { IonButton, IonContent } from '@ionic/vue';
+import { supabase } from '@/supabase';
 
-const loading = ref(true);
-const jsonData = ref(null);
+const news = ref([]);
 
-const fetchData = async () => {
+const fetchNews = async () => {
   try {
-    const response = await fetch('https://779f-188-157-38-153.ngrok-free.app/Lesson');
-    const contentType = response.headers.get('content-type');
-    if (!response.ok) {
-      throw new Error('Network response was not ok');
-    }
-    if (contentType && contentType.includes('application/json')) {
-      const data = await response.json();
-      jsonData.value = data;
+    console.log('Fetching news from Supabase...');
+    const { data, error } = await supabase
+      .from('news')
+      .select('id, title, description, postdate');
+    if (error) {
+      console.error('Error fetching news:', error);
     } else {
-      const text = await response.text();
-      console.error('Unexpected response format:', text);
-      throw new Error('Unexpected response format');
+      news.value = data;
+      console.log('News fetched successfully:', data);
     }
-  } catch (error) {
-    console.error('Error fetching data:', error);
-  } finally {
-    loading.value = false;
+  } catch (err) {
+    console.error('Fetch error:', err);
+  }
+};
+
+const scrollToBottom = () => {
+  const content = document.querySelector('ion-content');
+  if (content) {
+    content.scrollToBottom(500);
+  }
+};
+
+const scrollToTop = () => {
+  const content = document.querySelector('ion-content');
+  if (content) {
+    content.scrollToTop(500);
   }
 };
 
 onMounted(() => {
-  fetchData();
+  fetchNews();
 });
 </script>
 
 <style scoped>
-.pink-text {
-  color: pink;
+.news-list {
+  /* Your styles here */
 }
-pre {
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  background-color: #f8f8f8;
+.news-box {
+  border: 1px solid #ccc;
   padding: 16px;
+  margin-bottom: 16px;
   border-radius: 8px;
+}
+.news-box h3 {
+  margin: 0 0 8px;
+}
+.news-box p {
+  margin: 0;
 }
 </style>

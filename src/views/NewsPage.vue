@@ -1,7 +1,6 @@
-// filepath: /C:/Users/kopa/Desktop/asd/teszt/src/views/NewsPage.vue
 <template>
   <ion-page>
-    <ion-content :fullscreen="true">
+    <ion-header>
       <ion-toolbar class="seamless-toolbar">
         <ion-buttons slot="start">
           <ion-label class="large-text">Szia, {{ first_name }}!</ion-label>
@@ -12,29 +11,87 @@
           </ion-button>
         </ion-buttons>
       </ion-toolbar>
+    </ion-header>
+
+    <ion-content ref="content" scrollEvents @ionScroll="onScroll">
       <div class="page-load-animation">
-      <h2>Hírek</h2>
+        <ion-refresher slot="fixed" @ionRefresh="doRefresh">
+          <ion-refresher-content />
+        </ion-refresher>
+        <div v-if="!loading" class="news-list">
+          <div v-for="newsItem in news" :key="newsItem.id" class="news-box">
+            <h3>{{ newsItem.title }}</h3>
+            <p>{{ newsItem.description }}</p>
+            <small>{{ new Date(newsItem.postdate).toLocaleDateString() }}</small>
+          </div>
+        </div>
       </div>
+      <ion-fab vertical="bottom" horizontal="end" slot="fixed">
+        <ion-fab-button @click="top">
+          <ion-icon :icon="arrowUpOutline"></ion-icon>
+        </ion-fab-button>
+      </ion-fab>
+      <ion-spinner v-if="loading" class="loading-spinner"></ion-spinner>
     </ion-content>
   </ion-page>
 </template>
 
 <script setup lang="ts">
-import { IonPage, IonContent, IonToolbar, IonButtons, IonButton, IonIcon, IonLabel } from '@ionic/vue';
-import ExploreContainer from '@/components/ExploreContainer.vue';
-import { notifications } from 'ionicons/icons';
-import { onMounted, ref } from 'vue';
-import {first_name, fetchUser} from '@/components/AuthFunctions'
+import { ref, onMounted } from 'vue';
+import { IonPage, IonContent, IonHeader, IonToolbar, IonButtons, IonButton, IonIcon, IonLabel, IonRefresher, IonRefresherContent, IonFab, IonFabButton, IonSpinner } from '@ionic/vue';
+import { notifications, arrowUpOutline } from 'ionicons/icons';
+import { first_name, fetchUser } from '@/components/AuthFunctions';
+import { supabase } from '@/supabase';
 
+const news = ref([]);
+const content = ref(null);
+const loading = ref(true);
 
-onMounted(async () => {
+const fetchNews = async () => {
+  try {
+    console.log('Fetching news from Supabase...');
+    const { data, error } = await supabase
+      .from('news')
+      .select('id, title, description, postdate')
+      .order('postdate', { ascending: false }); // Sort by postdate in descending order
+    if (error) {
+      console.error('Error fetching news:', error);
+    } else {
+      news.value = data;
+      console.log('News fetched successfully:', data);
+    }
+  } catch (err) {
+    console.error('Fetch error:', err);
+  } finally {
+    setTimeout(() => {
+      loading.value = false;
+    }, 400); // Add a 500ms delay before hiding the loading spinner
+  }
+};
+const doRefresh = (event: any) => {
+  console.log("Begin async operation");
+
+  setTimeout(async () => {
+    await fetchNews(); // Refresh lessons data
+    event.target.complete(); // Signal the refresher to close
+    console.log("Async operation has ended");
+  }, 800); // Simulate a short delay for loading
+};
+
+const top = () => {
+  const content = document.querySelector('ion-content');
+  if (content) {
+    content.scrollToTop(500);
+  }
+};
+
+onMounted(() => {
   fetchUser();
+  fetchNews();
 });
 </script>
 
 <style scoped>
-
-
 .seamless-toolbar {
   --background: transparent;
   --border-color: transparent;
@@ -52,9 +109,33 @@ ion-content {
   --background: transparent;
 }
 .large-text {
-  font-size: 1.4em; /* Adjust the size as needed */
+  font-size: 1.4em;
 }
 .large-icon {
-  font-size: 2em; /* Adjust the size as needed */
+  font-size: 2em;
+}
+.page-load-animation {
+  padding: 16px;
+}
+.news-list {
+  /* Removed overflow-y and max-height to let <ion-content> handle scrolling */
+}
+.news-box {
+  border: 1px solid #ccc;
+  padding: 16px;
+  margin-bottom: 16px;
+  border-radius: 8px;
+}
+.news-box h3 {
+  margin: 0 0 8px;
+}
+.news-box p {
+  margin: 0;
+}
+.loading-spinner {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 </style>

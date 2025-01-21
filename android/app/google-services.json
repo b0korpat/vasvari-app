@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "737554021841",
+    "project_id": "vasvari-app",
+    "storage_bucket": "vasvari-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:737554021841:android:8a37e11d12b2e5e30034f0",
+        "android_client_info": {
+          "package_name": "com.vasvari.vasvariapp"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB3gjzatRFitc5OBSkwpJTxwaHH1fbdo5w"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
