@@ -13,7 +13,7 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content ref="content">
+    <ion-content ref="content" @ionScroll="onScroll">
       <div class="page-load-animation">
         <ion-refresher slot="fixed" @ionRefresh="doRefresh">
           <ion-refresher-content />
@@ -26,11 +26,15 @@
           </div>
         </div>
       </div>
-      <ion-fab vertical="bottom" horizontal="end" slot="fixed">
-        <ion-fab-button @click="top">
-          <ion-icon :icon="arrowUpOutline"></ion-icon>
-        </ion-fab-button>
-      </ion-fab>
+
+      <transition name="fab">
+        <ion-fab v-if="showFab" vertical="bottom" horizontal="end" slot="fixed">
+          <ion-fab-button @click="top">
+            <ion-icon :icon="arrowUpOutline"></ion-icon>
+          </ion-fab-button>
+        </ion-fab>
+      </transition>
+
       <ion-spinner v-if="loading" class="loading-spinner"></ion-spinner>
     </ion-content>
   </ion-page>
@@ -53,6 +57,7 @@ interface NewsItem {
 const news = ref<NewsItem[]>([]);
 const content = ref(null);
 const loading = ref(true);
+const showFab = ref(false);
 
 const fetchNews = async () => {
   try {
@@ -60,7 +65,7 @@ const fetchNews = async () => {
     const { data, error } = await supabase
       .from('news')
       .select('id, title, description, postdate')
-      .order('postdate', { ascending: false }); // Sort by postdate in descending order
+      .order('postdate', { ascending: false });
     if (error) {
       console.error('Error fetching news:', error);
     } else {
@@ -72,20 +77,22 @@ const fetchNews = async () => {
   } finally {
     setTimeout(() => {
       loading.value = false;
-    }, 400); // Add a 500ms delay before hiding the loading spinner
+    }, 400);
   }
 };
 
-
 const doRefresh = (event: any) => {
-  console.log("Begin async operation");
-
+  console.log('Begin async operation');
   setTimeout(async () => {
-    await fetchNews(); // Refresh lessons data
-    event.target.complete(); // Signal the refresher to close
-    console.log("Async operation has ended");
-  }, 800); // Simulate a short delay for loading
+    await fetchNews();
+    event.target.complete();
+    console.log('Async operation has ended');
+  }, 800);
 };
+
+function onScroll(event: any) {
+  showFab.value = event.detail.scrollTop > 100;
+}
 
 const top = () => {
   const content = document.querySelector('ion-content');
@@ -126,7 +133,6 @@ ion-content {
 .page-load-animation {
   padding: 16px;
 }
-
 .news-box {
   border: 1px solid #ccc;
   padding: 16px;
@@ -144,5 +150,17 @@ ion-content {
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
+}
+
+.fab-enter-active, .fab-leave-active {
+  transition: transform 0.5s ease-out, opacity 0.5s ease-out;
+}
+.fab-enter-from, .fab-leave-to {
+  transform: translateX(100%) rotate(0deg);
+  opacity: 0;
+}
+.fab-enter-to, .fab-leave-from {
+  transform: translateX(0) rotate(360deg);
+  opacity: 1;
 }
 </style>
