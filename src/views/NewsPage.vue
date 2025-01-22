@@ -13,7 +13,7 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content ref="content" scrollEvents @ionScroll="onScroll">
+    <ion-content ref="content">
       <div class="page-load-animation">
         <ion-refresher slot="fixed" @ionRefresh="doRefresh">
           <ion-refresher-content />
@@ -43,7 +43,14 @@ import { notifications, arrowUpOutline } from 'ionicons/icons';
 import { first_name, fetchUser } from '@/components/AuthFunctions';
 import { supabase } from '@/supabase';
 
-const news = ref([]);
+interface NewsItem {
+  id: number;
+  title: string;
+  description: string;
+  postdate: string;
+}
+
+const news = ref<NewsItem[]>([]);
 const content = ref(null);
 const loading = ref(true);
 
@@ -68,6 +75,8 @@ const fetchNews = async () => {
     }, 400); // Add a 500ms delay before hiding the loading spinner
   }
 };
+
+
 const doRefresh = (event: any) => {
   console.log("Begin async operation");
 
@@ -117,9 +126,7 @@ ion-content {
 .page-load-animation {
   padding: 16px;
 }
-.news-list {
-  /* Removed overflow-y and max-height to let <ion-content> handle scrolling */
-}
+
 .news-box {
   border: 1px solid #ccc;
   padding: 16px;

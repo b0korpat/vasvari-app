@@ -18,7 +18,14 @@ import { ref, onMounted } from 'vue';
 import { IonButton, IonContent } from '@ionic/vue';
 import { supabase } from '@/supabase';
 
-const news = ref([]);
+interface NewsItem {
+  id: number;
+  title: string;
+  description: string;
+  postdate: string;
+}
+
+const news = ref<NewsItem[]>([]);
 
 const fetchNews = async () => {
   try {
@@ -57,9 +64,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.news-list {
-  /* Your styles here */
-}
 .news-box {
   border: 1px solid #ccc;
   padding: 16px;

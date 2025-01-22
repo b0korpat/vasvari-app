@@ -35,7 +35,7 @@
           placeholder="Jelszó"
         >
           <ion-icon slot="start" :icon="lockClosed" aria-hidden="true"></ion-icon>
-            <ion-input-password-toggle slot="end"></ion-input-password-toggle>
+          <ion-input-password-toggle slot="end"></ion-input-password-toggle>
         </ion-input>
       </ion-item>
       <div class="error-container">
@@ -46,7 +46,12 @@
 
       <!-- Login Button -->
       <div class="login-button">
-        <ion-button expand="full" shape="round" @click="login">Bejelentkezés</ion-button>
+        <ion-button expand="full" shape="round" @click="login">
+          <template v-if="!isLoading">Bejelentkezés</template>
+          <template v-else>
+            <ion-spinner name="crescent"></ion-spinner>
+          </template>
+        </ion-button>
       </div>
     </ion-content>
   </ion-page>
@@ -55,9 +60,11 @@
 <script setup lang="ts">
 import { mailOutline, lockClosed } from 'ionicons/icons';
 import { IonInput, IonButton, IonContent, IonItem } from '@ionic/vue';
-import { ref, computed  } from 'vue';
+import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { supabase } from '@/supabase';
+
+const isLoading = ref(false);
 
 const email = ref('');
 const password = ref('');
@@ -93,16 +100,23 @@ const validatePasswordField = () => {
 };
 
 const login = async () => {
+  isLoading.value = true;
   validateEmailField();
   validatePasswordField();
 
   if (errorMessage.value.email || errorMessage.value.password) {
+    isLoading.value = false;
     return;
   }
 
-  const { error } = await supabase.auth.signInWithPassword({ email: email.value, password: password.value });
+  const { error } = await supabase.auth.signInWithPassword({
+    email: email.value,
+    password: password.value,
+  });
+
   if (error) {
     errorMessage.value.password = 'Helytelen email vagy jelszó';
+    isLoading.value = false;
   } else {
     router.push('/tabs/news');
     location.reload();
@@ -112,8 +126,8 @@ const login = async () => {
 
 <style scoped>
 * {
-padding: 0px;
-margin: 0px ;
+  padding: 0px;
+  margin: 0px;
 }
 
 .title-container {
@@ -140,7 +154,8 @@ ion-item {
   --border-radius: 20px;
   --background: transparent;
 }
-ion-input{
+
+ion-input {
   height: 60px;
 }
 
@@ -162,14 +177,16 @@ ion-input{
 }
 
 .error-container {
-  min-height: 1em; /* Adjust based on your error message height */
+  min-height: 1em;
 }
+
 .error-message {
   color: red;
   font-size: 0.9rem;
   margin-left: 10%;
   width: 90%;
 }
+
 .confirmation-message {
   font-size: 0.9rem;
   margin-left: 21%;
@@ -178,7 +195,6 @@ ion-input{
 .confirmation-message.success {
   color: green;
 }
-
 .confirmation-message.error {
   color: red;
 }
