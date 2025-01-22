@@ -64,13 +64,18 @@
               <div
                 v-for="lesson in lessonsByDay[day]"
                 :key="lesson.id"
-                class="lesson-box"
+                :class="['lesson-box', { 'small-lesson': lesson.name === 'Lyukasóra' || lesson.name.startsWith('Szünet') }]"
               >
-                <div>Subject: {{ lesson.name }}</div>
-                <div>Teacher: {{ lesson.teachername }}</div>
-                <div>Classroom: {{ lesson.room }}</div>
-                <div>Start Time: {{ lesson.starttime }}</div>
-                <div>End Time: {{ lesson.endtime }}</div>
+                <template v-if="lesson.name !== 'Lyukasóra' && !lesson.name.startsWith('Szünet')">
+                  <div>Subject: {{ lesson.name }}</div>
+                  <div>Teacher: {{ lesson.teachername }}</div>
+                  <div>Classroom: {{ lesson.room }}</div>
+                  <div>Start Time: {{ lesson.starttime }}</div>
+                  <div>End Time: {{ lesson.endtime }}</div>
+                </template>
+                <template v-else>
+                  <div>{{ lesson.name }}</div>
+                </template>
               </div>
             </ion-content>
             </div>
@@ -187,15 +192,24 @@ const fetchLessons = async () => {
         if (i < lessonsForDay.length - 1) {
           const currentLessonEnd = new Date(`1970-01-01T${lessonsForDay[i].endtime}:00`);
           const nextLessonStart = new Date(`1970-01-01T${lessonsForDay[i + 1].starttime}:00`);
-          const timeDifference = (nextLessonStart.getTime() - currentLessonEnd.getTime()) / (1000 * 60 * 60);
-          if (timeDifference >= 2) {
+          const timeDifference = (nextLessonStart.getTime() - currentLessonEnd.getTime()) / (1000 * 60); // Difference in minutes
+          if (timeDifference >= 30) {
             lessonsWithGaps.push({
               id: `gap-${i}`,
-              name: "Lyukas óra",
+              name: "Lyukasóra",
               teachername: "",
               room: "",
-              starttime: formatTime(new Date(currentLessonEnd.getTime() + 1 * 60 * 60 * 1000)), // Placeholder time
-              endtime: formatTime(new Date(currentLessonEnd.getTime() + 1 * 60 * 60 * 1000 + 45 * 60 * 1000)), // Placeholder end time
+              starttime: formatTime(new Date(currentLessonEnd.getTime() + 15 * 60 * 1000)), // Placeholder time
+              endtime: formatTime(new Date(currentLessonEnd.getTime() + 45 * 60 * 1000)), // Placeholder end time
+            });
+          } else if (timeDifference > 0) {
+            lessonsWithGaps.push({
+              id: `break-${i}`,
+              name: `Szünet (${timeDifference} perc)`,
+              teachername: "",
+              room: "",
+              starttime: formatTime(currentLessonEnd),
+              endtime: formatTime(nextLessonStart),
             });
           }
         }
@@ -209,6 +223,7 @@ const fetchLessons = async () => {
     console.error("Error fetching lessons:", error);
   }
 };
+
 const formatTime = (date: Date) => {
   const hours = date.getHours().toString().padStart(2, "0");
   const minutes = date.getMinutes().toString().padStart(2, "0");
@@ -342,7 +357,6 @@ ion-content {
 }
 
 .lessons-container {
-  border: 1px solid red;
   height: calc(100vh - 267px);
   text-align: center;
 }
@@ -355,11 +369,8 @@ ion-content {
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-.test {
-  border: 1px solid red;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
+.small-lesson {
+  font-size: 0.8em;
+  background-color: transparent;
 }
 </style>
