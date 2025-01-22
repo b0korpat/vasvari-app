@@ -13,7 +13,7 @@
       </ion-toolbar>
     </ion-header>
 
-    <ion-content ref="content" @ionScroll="onScroll">
+    <ion-content ref="content" scroll-events @ionScroll="onScroll">
       <div class="page-load-animation">
         <ion-refresher slot="fixed" @ionRefresh="doRefresh">
           <ion-refresher-content />
