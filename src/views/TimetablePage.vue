@@ -70,6 +70,7 @@
                 <div>Teacher: {{ lesson.teachername }}</div>
                 <div>Classroom: {{ lesson.room }}</div>
                 <div>Start Time: {{ lesson.starttime }}</div>
+                <div>End Time: {{ lesson.endtime }}</div>
               </div>
             </ion-content>
             </div>
@@ -167,12 +168,40 @@ const fetchLessons = async () => {
 
     const groupedLessons: Record<string, any[]> = {};
     daysOfWeek.value.forEach((day) => {
-      groupedLessons[day] = lessons
+      const lessonsForDay = lessons
         .filter((lesson: any) => formatDate(new Date(lesson.starttime)) === day)
-        .map((lesson: any) => ({
-          ...lesson,
-          starttime: formatTime(new Date(lesson.starttime)),
-        }));
+        .sort((a: any, b: any) => a.starttime.localeCompare(b.starttime))
+        .map((lesson: any) => {
+          const startTime = new Date(lesson.starttime);
+          const endTime = new Date(startTime.getTime() + 45 * 60 * 1000); // Add 45 minutes
+          return {
+            ...lesson,
+            starttime: formatTime(startTime),
+            endtime: formatTime(endTime),
+          };
+        });
+
+      const lessonsWithGaps = [];
+      for (let i = 0; i < lessonsForDay.length; i++) {
+        lessonsWithGaps.push(lessonsForDay[i]);
+        if (i < lessonsForDay.length - 1) {
+          const currentLessonEnd = new Date(`1970-01-01T${lessonsForDay[i].endtime}:00`);
+          const nextLessonStart = new Date(`1970-01-01T${lessonsForDay[i + 1].starttime}:00`);
+          const timeDifference = (nextLessonStart.getTime() - currentLessonEnd.getTime()) / (1000 * 60 * 60);
+          if (timeDifference >= 2) {
+            lessonsWithGaps.push({
+              id: `gap-${i}`,
+              name: "Lyukas óra",
+              teachername: "",
+              room: "",
+              starttime: formatTime(new Date(currentLessonEnd.getTime() + 1 * 60 * 60 * 1000)), // Placeholder time
+              endtime: formatTime(new Date(currentLessonEnd.getTime() + 1 * 60 * 60 * 1000 + 45 * 60 * 1000)), // Placeholder end time
+            });
+          }
+        }
+      }
+
+      groupedLessons[day] = lessonsWithGaps;
     });
     lessonsByDay.value = groupedLessons;
     console.log("Lessons by day:", lessonsByDay.value);
@@ -314,20 +343,18 @@ ion-content {
 
 .lessons-container {
   border: 1px solid red;
-height: calc(100vh - 267px);;
-text-align: center;
-
-
+  height: calc(100vh - 267px);
+  text-align: center;
 }
 
 .lesson-box {
   width: 80%;
-  margin: 8px auto ;
+  margin: 8px auto;
   border: 1px solid #ccc;
   border-radius: 8px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-
 }
+
 .test {
   border: 1px solid red;
   display: flex;

@@ -2,11 +2,11 @@
   <ion-page>
     <ion-content>
       <div class="title-container">
-        <h1>Login</h1>
+        <h1>Bejelentkezés</h1>
       </div>
 
       <!-- Email Input with Icon -->
-      <ion-item>
+      <ion-item class="input-item">
         <ion-input
           v-model="email"
           @input="validateEmailField"
@@ -18,12 +18,14 @@
           <ion-icon slot="start" :icon="mailOutline" aria-hidden="true"></ion-icon>
         </ion-input>
       </ion-item>
-      <transition name="fade">
-        <div v-if="errorMessage.email" class="error-message">{{ errorMessage.email }}</div>
-      </transition>
+      <div class="error-container">
+        <transition name="fade">
+          <div v-if="errorMessage.email" class="error-message">{{ errorMessage.email }}</div>
+        </transition>
+      </div>
 
       <!-- Password Input with Icon and Toggle -->
-      <ion-item>
+      <ion-item class="input-item">
         <ion-input
           v-model="password"
           @input="validatePasswordField"
@@ -33,22 +35,14 @@
           placeholder="Jelszó"
         >
           <ion-icon slot="start" :icon="lockClosed" aria-hidden="true"></ion-icon>
-          <ion-button fill="clear" slot="end" aria-label="Show/hide">
             <ion-input-password-toggle slot="end"></ion-input-password-toggle>
-          </ion-button>
         </ion-input>
       </ion-item>
-      <transition name="fade">
-        <div v-if="errorMessage.password" class="error-message">{{ errorMessage.password }}</div>
-      </transition>
-
-      <!-- Forgot Password Button -->
-      <ion-button expand="full" fill="clear" @click="forgotPassword">Elfelejtetted a jelszavad?</ion-button>
-
-      <!-- Confirmation Message -->
-      <transition name="fade">
-        <div v-if="confirmationMessage" :class="confirmationMessageClass">{{ confirmationMessage }}</div>
-      </transition>
+      <div class="error-container">
+        <transition name="fade">
+          <div v-if="errorMessage.password" class="error-message">{{ errorMessage.password }}</div>
+        </transition>
+      </div>
 
       <!-- Login Button -->
       <div class="login-button">
@@ -114,39 +108,18 @@ const login = async () => {
     location.reload();
   }
 };
-
-const forgotPassword = async () => {
-  validateEmailField();
-
-  if (errorMessage.value.email) {
-    return;
-  }
-
-  const { error } = await supabase.auth.resetPasswordForEmail(email.value, {
-          redirectTo: `https://pwteszt.vercel.app/reset-password`,
-        });
-  if (error) {
-    confirmationMessage.value = 'Hiba az email küldéssel: ' + error.message;
-  } else {
-    confirmationMessage.value = 'Jelszó helyreállító email elküldve';
-  }
-};
-
-// Computed property to determine the confirmation message color
-const confirmationMessageClass = computed(() => {
-  return confirmationMessage.value && confirmationMessage.value.startsWith("Hiba")
-    ? "confirmation-message error"
-    : "confirmation-message success";
-});
-
 </script>
 
 <style scoped>
+* {
+padding: 0px;
+margin: 0px ;
+}
+
 .title-container {
   display: flex;
   justify-content: center;
-  margin-top: 20vh;
-  margin-bottom: 25px;
+  margin-top: 30vh;
 }
 
 .login-button {
@@ -167,6 +140,13 @@ ion-item {
   --border-radius: 20px;
   --background: transparent;
 }
+ion-input{
+  height: 60px;
+}
+
+.input-item {
+  width: 90%;
+}
 
 .fade-enter-active,
 .fade-leave-active {
@@ -181,24 +161,30 @@ ion-item {
   opacity: 1;
 }
 
+.error-container {
+  min-height: 1em; /* Adjust based on your error message height */
+}
 .error-message {
   color: red;
   font-size: 0.9rem;
-  margin: auto auto auto 10%;
+  margin-left: 10%;
   width: 90%;
 }
-
 .confirmation-message {
   font-size: 0.9rem;
-  margin: auto auto auto 10%;
+  margin-left: 21%;
   width: 90%;
 }
-
 .confirmation-message.success {
   color: green;
 }
 
 .confirmation-message.error {
   color: red;
+}
+.forgot-password-container {
+  display: flex;
+  justify-content: center;
+  margin-top: 10px;
 }
 </style>
