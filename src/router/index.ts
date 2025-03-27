@@ -14,15 +14,15 @@ const routes: Array<RouteRecordRaw> = [
             },
             {
                 path: 'home',
-                component: () => import('@/views/HomePage.vue')
+                component: () => import('../views/HomePage.vue')
             },
             {
                 path: 'profile',
-                component: () => import('@/views/ProfilePage.vue')
+                component: () => import('../views/ProfilePage.vue')
             },
             {
                 path: 'timetable',
-                component: () => import('@/views/TimetablePage.vue')
+                component: () => import('../views/TimetablePage.vue')
             },
 
         ]
