@@ -1,46 +1,74 @@
-import { useUserStore } from '@/stores/user';
-import { ref } from 'vue';
-import { supabase } from '@/supabase';
+import {useUserStore} from '@/stores/user';
 
-const userStore = useUserStore();
-export const fullName = ref<string>(`${userStore.firstName} ${userStore.lastName}`);
-export const first_name = ref<string>(`${userStore.firstName}`);
-export const last_name = ref<string>(`${userStore.lastName}`);
-export const email = ref<string>(`${userStore.email}`);
+const API_BASE = 'https://backend-production-f2dd.up.railway.app/auth';
+
+const handleError = (error: unknown, context: string): null => {
+    console.error(`Error ${context}:`, error);
+    return null;
+};
 
 export const fetchUser = async () => {
-  if (!userStore.firstName || !userStore.lastName || !userStore.email) {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('first_name, last_name, email')
-        .eq('id', user.id)
-        .single();
-      if (error) {
-        console.error('Error fetching user data:', error.message);
-      } else {
-        userStore.setFirstName(data.first_name);
-        userStore.setLastName(data.last_name);
-        userStore.setEmail(data.email);
-        first_name.value = `${data.first_name}`;
-        last_name.value = `${data.last_name}`;
-        email.value = `${data.email}`;
-        fullName.value = `${data.first_name} ${data.last_name}`;
-      }
-    } else {
-      console.error('No user is logged in');
+    const userStore = useUserStore();
+
+    try {
+        const headers: HeadersInit = {
+            'Content-Type': 'application/json'
+        };
+
+
+        const response = await fetch(`${API_BASE}/me`, {
+            method: 'GET',
+            headers: {
+                "Content-Type": "application/json",
+                'Authorization': `Bearer ${userStore.token}`
+            },
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch user data');
+
+        const data = await response.json();
+        if (!data?.claims || !data.email) throw new Error('Invalid user data');
+
+        // Set user data
+        userStore.setUser({
+            firstName: data.claims.firstName,
+            lastName: data.claims.lastName,
+            email: data.email,
+        });
+
+        // Save new token if provided
+        if (data.token && data.uid) {
+            userStore.setAuthData({
+                uid: data.uid,
+                token: data.token
+            });
+        }
+
+        return data;
+    } catch (error) {
+        return handleError(error, 'fetching user data');
     }
-  }
 };
 
-export const logout = async () => {
-  const { error } = await supabase.auth.signOut();
-  if (error) {
-    console.error('Error logging out:', error.message);
-  } else {
-    userStore.clearUser();
-  }
-};
+export const logout = async (): Promise<boolean | null> => {
+    const userStore = useUserStore();
 
-export default { fullName, fetchUser, logout };
+    try {
+        const response = await fetch(`${API_BASE}/logout`, {
+            method: 'POST',
+            headers: {
+                "Content-Type": "application/json",
+                'Authorization': `Bearer ${userStore.token}`
+            },
+        });
+
+        if (!response.ok) throw new Error('Logout failed');
+
+        userStore.clearUser();
+        console.log('Logout successful');
+        return true;
+    } catch (error) {
+        userStore.clearUser();
+        return handleError(error, 'during logout');
+    }
+};

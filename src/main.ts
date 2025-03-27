@@ -1,92 +1,105 @@
-import { createApp } from 'vue'
-import App from './App.vue'
-import router from './router';
-import { createPinia } from 'pinia'; // Ensure this import is correct
+import { createApp } from "vue";
+import App from "./App.vue";
+import router from "./router";
+import { createPinia } from "pinia";
+import { IonicVue } from "@ionic/vue";
 
-import { IonicVue } from '@ionic/vue';
+// Ionic CSS imports
+import "@ionic/vue/css/core.css";
+import "@ionic/vue/css/normalize.css";
+import "@ionic/vue/css/structure.css";
+import "@ionic/vue/css/typography.css";
+import "@ionic/vue/css/padding.css";
+import "@ionic/vue/css/float-elements.css";
+import "@ionic/vue/css/text-alignment.css";
+import "@ionic/vue/css/text-transformation.css";
+import "@ionic/vue/css/flex-utils.css";
+import "@ionic/vue/css/display.css";
+import "@ionic/vue/css/palettes/dark.class.css";
+import "@ionic/vue/css/palettes/high-contrast.class.css";
 
-/* Core CSS required for Ionic components to work properly */
-import '@ionic/vue/css/core.css';
+// Theme variables
+import "./theme/variables.css";
 
-/* Basic CSS for apps built with Ionic */
-import '@ionic/vue/css/normalize.css';
-import '@ionic/vue/css/structure.css';
-import '@ionic/vue/css/typography.css';
-
-/* Optional CSS utils that can be commented out */
-import '@ionic/vue/css/padding.css';
-import '@ionic/vue/css/float-elements.css';
-import '@ionic/vue/css/text-alignment.css';
-import '@ionic/vue/css/text-transformation.css';
-import '@ionic/vue/css/flex-utils.css';
-import '@ionic/vue/css/display.css';
-
-/**
- * Ionic Dark Mode
- * -----------------------------------------------------
- * For more info, please see:
- * https://ionicframework.com/docs/theming/dark-mode
- */
-
-/* @import '@ionic/vue/css/palettes/dark.always.css'; */
-/* @import '@ionic/vue/css/palettes/dark.class.css'; */
-import '@ionic/vue/css/palettes/dark.class.css';
-import '@ionic/vue/css/palettes/high-contrast.class.css';
-const theme = localStorage.getItem('theme') || 'system';
-
-function applyTheme(theme: string) {
-  if (theme === 'dark') {
-    document.documentElement.classList.toggle('ion-palette-dark', true);
-    document.documentElement.classList.toggle('ion-palette-high-contrast', false);
-  } else if (theme === 'light') {
-    document.documentElement.classList.toggle('ion-palette-dark', false);
-    document.documentElement.classList.toggle('ion-palette-high-contrast', true);
-  } else if (theme === 'system') {
-    const isLightMode = window.matchMedia('(prefers-color-scheme: dark)').matches;
-    if (isLightMode) {
-      document.documentElement.classList.toggle('ion-palette-dark', true);
-      document.documentElement.classList.toggle('ion-palette-high-contrast', false);
-    } else {
-      document.documentElement.classList.toggle('ion-palette-dark', false);
-      document.documentElement.classList.toggle('ion-palette-high-contrast', true);
-    }
-  }
-}
-
-applyTheme(theme);
-
-if (theme === 'system') {
-  const mediaQuery = window.matchMedia('(prefers-color-scheme: dark)');
-  mediaQuery.addEventListener('change', () => {
-    location.reload();
-  });
-}
-
-/* Theme variables */
-import './theme/variables.css';
-import { supabase } from '@/supabase';
+import { fetchUser } from "@/components/AuthFunctions";
+import { useUserStore } from "@/stores/user";
+import { applyTheme } from "@/components/themeChange";
 
 const app = createApp(App)
-  .use(IonicVue)
-  .use(router);
+    .use(IonicVue)
+    .use(router);
 
 const pinia = createPinia();
 app.use(pinia);
 
-router.isReady().then(async () => {
-  const { data: { session } } = await supabase.auth.getSession();
-  const publicPaths = ['/update-password', '/register'];
-  if (publicPaths.includes(router.currentRoute.value.path)) {
-    app.mount('#app');
-  } else if (session) {
-    if (router.currentRoute.value.path !== '/tabs/news') {
-      await router.push('/tabs/news');
+const defaultPage = localStorage.getItem("defaultPage") || "home";
+const publicPaths = ["/login", "/register"];
+
+const theme = localStorage.getItem("theme") || "system";
+
+
+applyTheme(theme);
+
+
+function isOnline() {
+  return navigator.onLine;
+}
+
+async function initializeApp() {
+  const token = await fetchUser();
+  const { path } = router.currentRoute.value;
+  const userStore = useUserStore();
+
+  if (publicPaths.includes(path)) {
+    app.mount("#app");
+    return;
+  }
+
+  if (isOnline() && token) {
+    if (path !== `/tabs/${defaultPage}`) {
+      await router.push(`/tabs/${defaultPage}`);
       location.reload();
     } else {
-      app.mount('#app');
+      app.mount("#app");
     }
-  } else {
-    await router.push('/login');
-    app.mount('#app');
+    return;
   }
+
+  if (!isOnline()) {
+    const firstName = localStorage.getItem("firstName") || "";
+    const lastName = localStorage.getItem("lastName") || "";
+    const email = localStorage.getItem("email") || "";
+
+    if (!firstName || !lastName || !email) {
+      await router.push("/login");
+      app.mount("#app");
+      return;
+    }
+
+    userStore.setUser({
+      firstName,
+      lastName,
+      email,
+    });
+
+    if (path !== `/tabs/${defaultPage}`) {
+      await router.push(`/tabs/${defaultPage}`);
+      location.reload();
+    } else {
+
+      app.mount("#app");
+    }
+    return;
+  }
+
+  await router.push("/login");
+  app.mount("#app");
+}
+
+router.isReady().then(() => {
+  initializeApp();
+
+  window.addEventListener("online", () => {
+    location.reload();
+  });
 });

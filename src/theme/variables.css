@@ -77,7 +77,7 @@ http://ionicframework.com/docs/theming/ */
 	  transform: translateY(0);
 	}
   }
-  
+
   .page-load-animation {
 	animation: fadeIn 0.5s ease-out;
   }

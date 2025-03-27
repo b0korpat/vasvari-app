@@ -1,8 +1,8 @@
 import type { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'io.ionic.starter',
-  appName: 'vasvariApp',
+  appId: 'com.vasvariapp.app',
+  appName: 'Vasvari App',
   webDir: 'dist'
 };
 

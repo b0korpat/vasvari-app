@@ -1,4 +1,4 @@
-package io.ionic.starter;
+package com.vasvari.vasvariapp;
 
 import com.getcapacitor.BridgeActivity;
 

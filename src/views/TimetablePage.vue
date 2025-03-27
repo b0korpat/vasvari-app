@@ -1,148 +1,298 @@
 <template>
   <ion-page>
     <ion-content :fullscreen="true">
-      <ion-toolbar class="seamless-toolbar">
-        <ion-buttons slot="start">
-          <ion-label class="large-text">Szia, {{ first_name }}!</ion-label>
-        </ion-buttons>
-        <ion-buttons slot="end">
-          <ion-button>
-            <ion-icon
-              slot="icon-only"
-              :icon="notifications"
-              class="large-icon"
-            ></ion-icon>
-          </ion-button>
-        </ion-buttons>
-      </ion-toolbar>
-
+      <TopBar/>
       <div class="page-load-animation">
-        <div class="week-selector">
-          <ion-button @click="prevWeek" fill="clear" class="arrow-button">
-            <ion-icon :icon="arrowBackOutline"></ion-icon>
-          </ion-button>
-          <ion-label>{{ currentWeek }}</ion-label>
-          <ion-button @click="nextWeek" fill="clear" class="arrow-button">
-            <ion-icon :icon="arrowForwardOutline"></ion-icon>
-          </ion-button>
-        </div>
-        <div class="day-buttons">
-          <div
-            v-for="(day, index) in daysOfWeek"
-            :key="day"
-            class="day-button-container"
-          >
-            <ion-button
-              :fill="selectedDayIndex === index ? 'solid' : 'outline'"
-              @click="goToSlide(index)"
-              class="day-button"
-            >
-              {{ getDayAbbreviation(new Date(day).getDay()) }}
+        <div class="calendar-header">
+          <div class="week-navigator">
+            <ion-button class="nav-button" fill="clear" @click="prevWeek">
+              <ion-icon :icon="arrowBackOutline" size="small"></ion-icon>
             </ion-button>
+            <div class="week-display">
+              <ion-icon :icon="calendarOutline" class="calendar-icon"></ion-icon>
+              <span>{{ currentWeek }}</span>
+            </div>
+            <ion-button class="nav-button" fill="clear" @click="nextWeek">
+              <ion-icon :icon="arrowForwardOutline" size="small"></ion-icon>
+            </ion-button>
+          </div>
+
+          <div class="days-carousel">
             <div
-              class="day-number"
-              :class="{ 'current-day': isCurrentDay(day) }"
+                v-for="(day, index) in daysOfWeek"
+                :key="day"
+                :class="['day-item', { 'selected-day': selectedDayIndex === index }]"
+                @click="goToSlide(index)"
             >
-              {{ new Date(day).getDate() }}
+              <div class="day-wrapper">
+                <div :class="['day-badge', { 'today': isCurrentDay(day) }]">
+                  {{ getDayAbbreviation(new Date(day).getDay()) }}
+                </div>
+                <div class="date-number">{{ new Date(day).getDate() }}</div>
+              </div>
             </div>
           </div>
         </div>
 
         <swiper
-          :slides-per-view="1"
-          :initial-slide="selectedDayIndex"
-          @slideChange="onSlideChange"
-          @swiper="onSwiperInit"
+            :initial-slide="selectedDayIndex"
+            :slides-per-view="1"
+            @slideChange="onSlideChange"
+            @swiper="onSwiperInit"
         >
-          <swiper-slide v-for="(day, index) in daysOfWeek" :key="day">
-            <div class="teszt">
-            <div>{{ day }}</div>
+          <swiper-slide v-for="day in daysOfWeek" :key="day">
             <ion-content class="lessons-container">
               <ion-refresher slot="fixed" @ionRefresh="doRefresh">
-                <ion-refresher-content />
+                <ion-refresher-content/>
               </ion-refresher>
-              <div
-                v-for="lesson in lessonsByDay[day]"
-                :key="lesson.id"
-                :class="['lesson-box', { 'small-lesson': lesson.name === 'Lyukasóra' || lesson.name.startsWith('Szünet') }]"
-              >
-                <template v-if="lesson.name !== 'Lyukasóra' && !lesson.name.startsWith('Szünet')">
-                  <div>Subject: {{ lesson.name }}</div>
-                  <div>Teacher: {{ lesson.teachername }}</div>
-                  <div>Classroom: {{ lesson.room }}</div>
-                  <div>Start Time: {{ lesson.starttime }}</div>
-                  <div>End Time: {{ lesson.endtime }}</div>
-                </template>
-                <template v-else>
-                  <div>{{ lesson.name }}</div>
-                </template>
+
+              <!-- Show spinner in the lessons space -->
+              <!-- Replace spinner with skeleton loading UI -->
+              <div v-if="lessonStore.loading" class="lessons-skeleton-container">
+                <div v-for="i in 6" :key="i" class="skeleton-lesson-item">
+                  <div class="skeleton-time">
+                    <div class="skeleton-number pulse"></div>
+                    <div class="skeleton-times pulse"></div>
+                  </div>
+                  <div class="skeleton-content">
+                    <div class="skeleton-name pulse"></div>
+                    <div class="skeleton-room pulse"></div>
+                    <div class="skeleton-teacher pulse"></div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Holiday message -->
+              <ion-card v-else-if="isHoliday(day)" class="holiday-card">
+                <ion-card-header>
+                  <ion-card-title>
+                    <ion-icon :icon="sunnyOutline"></ion-icon>
+                    Szünet
+                  </ion-card-title>
+                </ion-card-header>
+                <ion-card-content>
+                  {{ getHolidayName(day) }}
+                </ion-card-content>
+              </ion-card>
+
+              <!-- No lessons message -->
+              <div v-else-if="!lessonStore.lessonsByDay[day] || lessonStore.lessonsByDay[day].length === 0"
+                   class="no-lessons">
+                <ion-icon :icon="calendarOutline" class="no-lessons-icon"></ion-icon>
+                <p>Nincsenek órák ezen a napon</p>
+              </div>
+
+              <!-- Lessons list -->
+              <div v-else class="lessons-list">
+                <div
+                    v-for="(lesson, index) in lessonStore.lessonsByDay[day]?.filter((lesson) => {
+                      if (lesson.name === 'Lyukasóra' || isRegularLesson(lesson)) {
+                        return true;
+                      }
+                      if (lesson.name?.startsWith('Szünet')) {
+                        return showBreaksBetweenLessons;
+                      }
+                      return false;
+                    })"
+                    :key="lesson.id"
+                    :class="['lesson-item', getLessonClass(lesson), { 'current-lesson': isCurrentLesson(lesson, day) }]"
+                    @click="openLessonDetails(lesson)"
+                >
+                  <div v-if="isRegularLesson(lesson)" class="time-indicator">
+                    <div class="lesson-number">{{ getLessonNumber(day, lesson.id) }}</div>
+                    <div class="lesson-time">
+                      <span>{{ lesson.starttime }}</span>
+                      <span>{{ lesson.endtime }}</span>
+                    </div>
+                  </div>
+
+                  <div v-if="isRegularLesson(lesson)" class="lesson-content">
+                    <div class="lesson-name">{{ lesson.displayName }}</div>
+                    <div class="lesson-room">{{ lesson.room || 'No room' }}</div>
+                    <div v-if="lesson.teachername" class="lesson-teacher">{{ lesson.teachername }}</div>
+                  </div>
+
+                  <div v-else class="break-content">
+                    <ion-icon :icon="timeOutline" class="break-icon"></ion-icon>
+                    <div>{{ lesson.name }}</div>
+                  </div>
+                </div>
               </div>
             </ion-content>
-            </div>
           </swiper-slide>
         </swiper>
       </div>
     </ion-content>
+
+    <ion-modal
+        :is-open="isModalOpen"
+        :swipe-to-close="true"
+        class="lesson-details-modal"
+        @didDismiss="isModalOpen = false"
+    >
+      <div class="modal-content">
+        <div :class="{'current-lesson-header': isCurrentLesson(selectedLesson, selectedLesson?.date)}"
+             class="modal-header">
+          <div class="header-top">
+            <ion-buttons>
+              <ion-button @click="isModalOpen = false">
+                <ion-icon :icon="closeOutline" size="large"></ion-icon>
+              </ion-button>
+            </ion-buttons>
+          </div>
+
+          <h1 class="subject-title">{{ selectedLesson?.subjectName }}</h1>
+        </div>
+
+        <ion-content class="modal-inner-content">
+          <div v-if="selectedLesson" class="lesson-details">
+            <div class="detail-section">
+              <div class="detail-row">
+                <ion-icon :icon="timeOutline" color="primary"></ion-icon>
+                <div>
+                  <h3>Időpont</h3>
+                  <p>{{ selectedLesson.starttime }} - {{ selectedLesson.endtime }}</p>
+                  <p class="detail-secondary">{{ selectedLesson.date }}</p>
+                </div>
+              </div>
+
+              <div class="detail-row">
+                <ion-icon :icon="locationOutline" color="primary"></ion-icon>
+                <div>
+                  <h3>Terem</h3>
+                  <p>{{ selectedLesson.room }}</p>
+                </div>
+              </div>
+
+              <div class="detail-row">
+                <ion-icon :icon="personOutline" color="primary"></ion-icon>
+                <div>
+                  <h3>Tanár</h3>
+                  <p>{{ selectedLesson.teachername }}</p>
+                </div>
+              </div>
+
+              <div class="detail-row">
+                <ion-icon :icon="peopleOutline" color="primary"></ion-icon>
+                <div>
+                  <h3>Osztály</h3>
+                  <p>{{ selectedLesson.studentGroupName }}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </ion-content>
+      </div>
+    </ion-modal>
+
   </ion-page>
 </template>
 
-<script setup lang="ts">
+<script lang="ts" setup>
 import {
-  IonPage,
   IonButton,
+  IonButtons,
+  IonCard,
+  IonCardContent,
+  IonCardHeader,
+  IonCardTitle,
   IonContent,
   IonIcon,
-  IonLabel,
-  IonButtons,
-  IonToolbar,
-} from "@ionic/vue";
-import { ref, onMounted } from "vue";
-import { Swiper, SwiperSlide } from "swiper/vue";
-import "swiper/swiper-bundle.css";
+  IonModal,
+  IonPage,
+  IonRefresher,
+  IonRefresherContent,
+} from '@ionic/vue';
+import {onMounted, ref} from 'vue';
+import {Swiper, SwiperSlide} from 'swiper/vue';
+import 'swiper/swiper-bundle.css';
 import {
   arrowBackOutline,
   arrowForwardOutline,
-  notifications,
-} from "ionicons/icons";
-import { first_name, fetchUser } from "@/components/AuthFunctions";
-import { supabase } from "@/supabase";
+  calendarOutline,
+  closeOutline,
+  locationOutline,
+  peopleOutline,
+  personOutline,
+  sunnyOutline,
+  timeOutline
+} from 'ionicons/icons';
 
-const currentWeek = ref("");
+import TopBar from '@/components/TopBar.vue';
+import {useLessonStore} from '@/stores/lessons';
+import {useHolidayStore} from '@/stores/holiday';
+
+
+const showBreaksBetweenLessons = ref(localStorage.getItem('showBreaksBetweenLessons') === 'true');
+
+
+const lessonStore = useLessonStore();
+const holidayStore = useHolidayStore();
+
+const currentWeek = ref('');
 const daysOfWeek = ref<string[]>([]);
 const selectedDayIndex = ref(0);
-const lessonsByDay = ref<Record<string, any[]>>({});
-const swiperRef = ref<any>(null); // Ref for Swiper instance
+const swiperRef = ref<any>(null);
+const isModalOpen = ref(false);
+const selectedLesson = ref<any>(null);
 
-const doRefresh = (event: any) => {
-  console.log("Begin async operation");
+const formatDate = (date: Date) => {
+  const year = date.getFullYear();
+  const month = (date.getMonth() + 1).toString().padStart(2, '0');
+  const day = date.getDate().toString().padStart(2, '0');
+  return `${year}.${month}.${day}`;
+};
 
-  setTimeout(async () => {
-    await fetchLessons(); // Refresh lessons data
-    event.target.complete(); // Signal the refresher to close
-    console.log("Async operation has ended");
-  }, 1000); // Simulate a short delay for loading
+const getDayAbbreviation = (day: number) => {
+  const days = ['V', 'H', 'K', 'Sz', 'Cs', 'P', 'Szo'];
+  return days[day];
 };
 
 const isCurrentDay = (day: string) => {
   const today = new Date();
   const dayOfMonth = new Date(day).getDate();
   return (
-    today.getDate() === dayOfMonth &&
-    today.getMonth() === new Date(day).getMonth() &&
-    today.getFullYear() === new Date(day).getFullYear()
+      today.getDate() === dayOfMonth &&
+      today.getMonth() === new Date(day).getMonth() &&
+      today.getFullYear() === new Date(day).getFullYear()
   );
 };
 
-const formatDate = (date: Date) => {
-  const year = date.getFullYear();
-  const month = (date.getMonth() + 1).toString().padStart(2, "0");
-  const day = date.getDate().toString().padStart(2, "0");
-  return `${year}.${month}.${day}`;
+const isRegularLesson = (lesson: any) => {
+  return lesson.name !== 'Lyukasóra' && !lesson.name?.startsWith('Szünet');
 };
 
-const getDayAbbreviation = (day: number) => {
-  const days = ["V", "H", "K", "Sz", "Cs", "P", "Szo"];
-  return days[day];
+const getLessonClass = (lesson: any) => {
+  if (lesson.name === 'Lyukasóra') return 'gap-lesson';
+  if (lesson.name?.startsWith('Szünet')) return 'break-lesson';
+  return 'regular-lesson';
+};
+
+const isCurrentLesson = (lesson: any, day: string) => {
+  if (!isRegularLesson(lesson) || !isCurrentDay(day)) return false;
+
+  const now = new Date();
+  const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+  return lesson.starttime <= currentTime && currentTime <= lesson.endtime;
+};
+
+const isHoliday = (day: string) => {
+  const dayDate = new Date(day.replace(/\./g, '-'));
+  return holidayStore.holidays.some((holiday) => {
+    const startDate = new Date(holiday.holiday_date);
+    const endDate = new Date(holiday.end_date);
+    return dayDate >= startDate && dayDate <= endDate;
+  });
+};
+
+const getHolidayName = (day: string) => {
+  const dayDate = new Date(day.replace(/\./g, '-'));
+  const holiday = holidayStore.holidays.find((h) => {
+    const startDate = new Date(h.holiday_date);
+    const endDate = new Date(h.end_date);
+    return dayDate >= startDate && dayDate <= endDate;
+  });
+  return holiday ? holiday.holiday_name : 'Iskolai szünet';
 };
 
 const getCurrentWeek = () => {
@@ -154,123 +304,82 @@ const getCurrentWeek = () => {
   sunday.setDate(monday.getDate() + 6);
 
   currentWeek.value = `${formatDate(monday)} - ${formatDate(sunday)}`;
-  daysOfWeek.value = Array.from({ length: 7 }, (_, i) => {
+  daysOfWeek.value = Array.from({length: 7}, (_, i) => {
     const day = new Date(monday);
     day.setDate(monday.getDate() + i);
     return formatDate(day);
   });
 };
 
-const fetchLessons = async () => {
-  try {
-    const { data: lessons, error } = await supabase
-      .from("lessons")
-      .select("id, name, teachername, room, starttime");
-
-    if (error) {
-      throw new Error(error.message);
-    }
-
-    const groupedLessons: Record<string, any[]> = {};
-    daysOfWeek.value.forEach((day) => {
-      const lessonsForDay = lessons
-        .filter((lesson: any) => formatDate(new Date(lesson.starttime)) === day)
-        .sort((a: any, b: any) => a.starttime.localeCompare(b.starttime))
-        .map((lesson: any) => {
-          const startTime = new Date(lesson.starttime);
-          const endTime = new Date(startTime.getTime() + 45 * 60 * 1000); // Add 45 minutes
-          return {
-            ...lesson,
-            starttime: formatTime(startTime),
-            endtime: formatTime(endTime),
-          };
-        });
-
-      const lessonsWithGaps = [];
-      for (let i = 0; i < lessonsForDay.length; i++) {
-        lessonsWithGaps.push(lessonsForDay[i]);
-        if (i < lessonsForDay.length - 1) {
-          const currentLessonEnd = new Date(`1970-01-01T${lessonsForDay[i].endtime}:00`);
-          const nextLessonStart = new Date(`1970-01-01T${lessonsForDay[i + 1].starttime}:00`);
-          const timeDifference = (nextLessonStart.getTime() - currentLessonEnd.getTime()) / (1000 * 60); // Difference in minutes
-          if (timeDifference >= 30) {
-            lessonsWithGaps.push({
-              id: `gap-${i}`,
-              name: "Lyukasóra",
-              teachername: "",
-              room: "",
-              starttime: formatTime(new Date(currentLessonEnd.getTime() + 15 * 60 * 1000)), // Placeholder time
-              endtime: formatTime(new Date(currentLessonEnd.getTime() + 45 * 60 * 1000)), // Placeholder end time
-            });
-          } else if (timeDifference > 0) {
-            lessonsWithGaps.push({
-              id: `break-${i}`,
-              name: `Szünet (${timeDifference} perc)`,
-              teachername: "",
-              room: "",
-              starttime: formatTime(currentLessonEnd),
-              endtime: formatTime(nextLessonStart),
-            });
-          }
-        }
-      }
-
-      groupedLessons[day] = lessonsWithGaps;
-    });
-    lessonsByDay.value = groupedLessons;
-    console.log("Lessons by day:", lessonsByDay.value);
-  } catch (error) {
-    console.error("Error fetching lessons:", error);
-  }
-};
-
-const formatTime = (date: Date) => {
-  const hours = date.getHours().toString().padStart(2, "0");
-  const minutes = date.getMinutes().toString().padStart(2, "0");
-  return `${hours}:${minutes}`;
-};
-
 const prevWeek = () => {
-  const [start, end] = currentWeek.value
-    .split(" - ")
-    .map((date) => new Date(date.replace(/\./g, "-")));
+  const [start, end] = currentWeek.value.split(' - ').map((date) => new Date(date.replace(/\./g, '-')));
   start.setDate(start.getDate() - 7);
   end.setDate(end.getDate() - 7);
   currentWeek.value = `${formatDate(start)} - ${formatDate(end)}`;
-  daysOfWeek.value = Array.from({ length: 7 }, (_, i) => {
+  daysOfWeek.value = Array.from({length: 7}, (_, i) => {
     const day = new Date(start);
     day.setDate(start.getDate() + i);
     return formatDate(day);
   });
-  selectedDayIndex.value = 0;
-  fetchLessons();
-  goToSlide(0); // Navigate to Monday
+  updateSelectedDay();
+
+  const cachedLessons = lessonStore.lessonsByDay;
+  const hasLessonsForWeek = daysOfWeek.value.some((day) => cachedLessons[day]);
+
+  if (!hasLessonsForWeek) {
+    console.log('No lessons for this week in localStorage. Fetching lessons...');
+    lessonStore.loading = true;
+    lessonStore.fetchLessons(start.toISOString().split('T')[0], end.toISOString().split('T')[0], true).then(() => {
+      console.log('Lessons fetched for the previous week.');
+    });
+  } else {
+    console.log('Lessons for this week are already in localStorage.');
+  }
 };
 
 const nextWeek = () => {
-  const [start, end] = currentWeek.value
-    .split(" - ")
-    .map((date) => new Date(date.replace(/\./g, "-")));
+  const [start, end] = currentWeek.value.split(' - ').map((date) => new Date(date.replace(/\./g, '-')));
   start.setDate(start.getDate() + 7);
   end.setDate(end.getDate() + 7);
   currentWeek.value = `${formatDate(start)} - ${formatDate(end)}`;
-  daysOfWeek.value = Array.from({ length: 7 }, (_, i) => {
+  daysOfWeek.value = Array.from({length: 7}, (_, i) => {
     const day = new Date(start);
     day.setDate(start.getDate() + i);
     return formatDate(day);
   });
-  selectedDayIndex.value = 0;
-  fetchLessons();
-  goToSlide(0); // Navigate to Monday
+  updateSelectedDay();
+
+  const cachedLessons = lessonStore.lessonsByDay;
+  const hasLessonsForWeek = daysOfWeek.value.some((day) => cachedLessons[day]);
+
+  if (!hasLessonsForWeek) {
+    console.log('No lessons for this week in localStorage. Fetching lessons...');
+    lessonStore.loading = true;
+    lessonStore.fetchLessons(start.toISOString().split('T')[0], end.toISOString().split('T')[0], true).then(() => {
+      console.log('Lessons fetched for the next week.');
+    });
+  } else {
+    console.log('Lessons for this week are already in localStorage.');
+  }
+};
+
+const updateSelectedDay = () => {
+  const today = formatDate(new Date());
+  const todayIndex = daysOfWeek.value.findIndex((day) => day === today);
+  selectedDayIndex.value = todayIndex !== -1 ? todayIndex : 0;
+
+  if (swiperRef.value) {
+    swiperRef.value.slideTo(selectedDayIndex.value);
+  }
 };
 
 const onSwiperInit = (swiperInstance: any) => {
-  swiperRef.value = swiperInstance; // Capture Swiper instance
+  swiperRef.value = swiperInstance;
 };
 
 const goToSlide = (index: number) => {
   if (swiperRef.value) {
-    swiperRef.value.slideTo(index); // Navigate to the corresponding slide
+    swiperRef.value.slideTo(index);
     selectedDayIndex.value = index;
   }
 };
@@ -279,98 +388,496 @@ const onSlideChange = (swiper: any) => {
   selectedDayIndex.value = swiper.activeIndex;
 };
 
-onMounted(async () => {
-  fetchUser();
+const doRefresh = async (event: any) => {
+  try {
+    const [start, end] = currentWeek.value.split(' - ').map((date) => date.replace(/\./g, '-'));
+    await lessonStore.fetchLessons(start, end, true);
+  } catch (error) {
+    console.error('Error during refresh:', error);
+  } finally {
+    event.target.complete();
+  }
+};
+
+const getLessonNumber = (day: string, currentLessonId: string) => {
+  console.log('Getting lesson number for:', currentLessonId);
+  if (!lessonStore.lessonsByDay[day]) return 1;
+  let count = 0;
+  for (const lesson of lessonStore.lessonsByDay[day]) {
+    if (lesson.id === currentLessonId) {
+      return count + 1;
+    }
+    if (isRegularLesson(lesson)) {
+      count++;
+    }
+  }
+
+  return count + 1;
+
+};
+
+const openLessonDetails = (lesson: any) => {
+  selectedLesson.value = lesson;
+  console.log(selectedLesson.value);
+  isModalOpen.value = true;
+};
+
+const formatModalTime = (dateTime: string) => {
+  const date = new Date(dateTime);
+  return date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+};
+
+onMounted(() => {
+  console.log('Loading lessons from localStorage...');
+  holidayStore.fetchHolidays();
+  lessonStore.loadFromLocalStorage();
+
   getCurrentWeek();
-  fetchLessons();
-  const today = new Date();
-  const dayOfWeek = today.getDay();
-  selectedDayIndex.value = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // Adjust for Sunday being 0
+
+  const today = formatDate(new Date());
+  const currentIndex = daysOfWeek.value.findIndex((day) => day === today);
+  selectedDayIndex.value = currentIndex !== -1 ? currentIndex : 0;
+
+  const savedLessons = localStorage.getItem('lessonsByDay');
+  if (savedLessons && savedLessons.length > 0) {
+    lessonStore.fetchLessons(daysOfWeek.value[0], daysOfWeek.value[6], false).then(() => {
+      console.log('Lessons fetched for the current week.');
+    });
+  } else {
+    lessonStore.fetchLessons(daysOfWeek.value[0], daysOfWeek.value[6], true).then(() => {
+      console.log('Lessons fetched for the current week.');
+    });
+  }
+
+
   goToSlide(selectedDayIndex.value);
 });
 </script>
 
 <style scoped>
-.seamless-toolbar {
-  --background: transparent;
-  --border-color: transparent;
-  --ion-toolbar-background: transparent;
-  --ion-toolbar-border-color: transparent;
-  --box-shadow: none;
-}
-ion-toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0 16px;
-}
-ion-content {
-  --background: transparent;
-}
-.large-text {
-  font-size: 1.4em; /* Adjust the size as needed */
-}
-.large-icon {
-  font-size: 2em; /* Adjust the size as needed */
-}
-.week-selector {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.day-buttons {
-  display: flex;
-  justify-content: center;
-  margin: 16px 0;
-}
-.day-button {
-  border-radius: 50%;
-  width: 40px;
-  height: 40px;
-  min-width: 40px;
-  min-height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: 0 4px;
-  padding: 0;
-  text-align: center;
-}
 
-.day-button-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  margin: 0 4px;
-}
-
-.day-number {
-  font-size: 0.8em;
-  margin-top: 4px;
-  color: #666; /* Default color */
-}
 .current-day {
-  color: var(
-    --ion-color-primary
-  ); /* Highlight current day in ionic primary color */
-  font-weight: bold; /* Optional: Make the text bold for better visibility */
+  color: var(--ion-color-primary);
+  font-weight: bold;
 }
 
 .lessons-container {
-  height: calc(100vh - 267px);
-  text-align: center;
+  height: calc(100vh - 300px);
+  padding: 0 10px;
+  background-color: var(--ion-background-color);
 }
 
-.lesson-box {
-  width: 80%;
-  margin: 8px auto;
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+.lesson-item {
+  display: flex;
+  margin: 12px 10px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  transition: transform 0.2s, box-shadow 0.2s;
+  cursor: pointer;
 }
 
-.small-lesson {
-  font-size: 0.8em;
-  background-color: transparent;
+.lesson-item:active {
+  transform: scale(0.98);
+}
+
+.regular-lesson {
+  display: flex;
+  background-color: var(--ion-card-background);
+  border-left: 4px solid var(--ion-color-primary);
+  height: 70px;
+}
+
+.gap-lesson {
+  height: 50px;
+  background-color: rgba(255, 255, 255, 0.05);
+  justify-content: center;
+  align-items: center;
+  opacity: 0.8;
+}
+
+.break-lesson {
+  box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+}
+
+.current-lesson {
+  border-left: 4px solid var(--ion-color-success);
+  background-color: rgba(var(--ion-color-success-rgb), 0.15);
+  box-shadow: 0 4px 12px rgba(var(--ion-color-success-rgb), 0.3);
+}
+
+.time-indicator {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 60px;
+  background-color: rgba(var(--ion-color-primary-rgb), 0.2);
+  padding: 0 8px;
+}
+
+.lesson-number {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: var(--ion-color-primary);
+}
+
+.lesson-time {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.7rem;
+  color: var(--ion-color-medium);
+}
+
+.lesson-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 15px;
+}
+
+.lesson-name {
+  font-weight: bold;
+  font-size: 1rem;
+  color: var(--ion-text-color);
+}
+
+.lesson-room {
+  font-size: 0.8rem;
+  color: var(--ion-color-medium-shade);
+}
+
+.lesson-teacher {
+  font-size: 0.75rem;
+  color: var(--ion-color-medium);
+}
+
+.break-content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--ion-color-medium);
+}
+
+.break-icon {
+  font-size: 1.2rem;
+}
+
+.no-lessons {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: var(--ion-color-medium);
+}
+
+.no-lessons-icon {
+  font-size: 3rem;
+  margin-bottom: 16px;
+  opacity: 0.5;
+}
+
+.holiday-card {
+  margin: 16px;
+  border-left: 4px solid var(--ion-color-warning);
+  background-color: rgba(var(--ion-color-warning-rgb), 0.1);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+/* Modal Styles */
+.lesson-details-modal {
+  --width: 90%;
+  --max-width: 500px;
+  --border-radius: 16px;
+  --max-height: 500px;
+  --box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+
+}
+
+.modal-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.modal-header {
+  background: linear-gradient(135deg, var(--ion-color-primary), var(--ion-color-primary-shade));
+  color: white;
+  padding: 20px;
+  border-radius: 16px 16px 0 0;
+}
+
+.current-lesson-header {
+  background: linear-gradient(135deg, var(--ion-color-success), var(--ion-color-success-shade));
+}
+
+.header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.subject-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin: 10px 0 5px;
+}
+
+.modal-inner-content {
+  --padding-start: 0;
+  --padding-end: 0;
+
+}
+
+.lesson-details {
+
+  padding: 0 16px;
+}
+
+.detail-section {
+
+  border-radius: 12px;
+  padding: 16px;
+  margin: 16px 0;
+}
+
+.detail-row {
+
+  display: flex;
+  align-items: flex-start;
+  gap: 20px;
+  margin-bottom: 16px;
+}
+
+.detail-row:last-child {
+
+  margin-bottom: 0;
+}
+
+.detail-row ion-icon {
+
+  font-size: 24px;
+  margin-top: 3px;
+}
+
+.detail-row h3 {
+
+  margin: 0 0 4px 0;
+  font-size: 0.9rem;
+  color: var(--ion-color-medium);
+
+  font-weight: 500;
+}
+
+.detail-row p {
+  margin: 0;
+  font-size: 1.1rem;
+  color: var(--ion-text-color);
+
+  font-weight: 500;
+}
+
+.detail-secondary {
+
+  font-size: 0.9rem;
+  color: var(--ion-color-medium);
+  margin-top: 4px !important;
+}
+
+/* Skeleton loading styles */
+
+.skeleton-lesson-item {
+  display: flex;
+  margin: 12px 10px;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  height: 70px;
+  background-color: var(--ion-card-background);
+  border-left: 4px solid rgba(var(--ion-color-primary-rgb), 0.3);
+}
+
+.skeleton-time {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  width: 60px;
+  background-color: rgba(var(--ion-color-primary-rgb), 0.1);
+  padding: 8px;
+}
+
+.skeleton-number {
+  width: 20px;
+  height: 20px;
+  border-radius: 4px;
+  background-color: rgba(var(--ion-color-medium-rgb), 0.2);
+  margin-bottom: 6px;
+}
+
+.skeleton-times {
+  width: 40px;
+  height: 12px;
+  border-radius: 2px;
+  background-color: rgba(var(--ion-color-medium-rgb), 0.2);
+}
+
+.skeleton-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 0 15px;
+  gap: 6px;
+}
+
+.skeleton-name {
+  width: 70%;
+  height: 16px;
+  border-radius: 4px;
+  background-color: rgba(var(--ion-color-medium-rgb), 0.2);
+}
+
+.skeleton-room {
+  width: 30%;
+  height: 12px;
+  border-radius: 4px;
+  background-color: rgba(var(--ion-color-medium-rgb), 0.2);
+}
+
+.skeleton-teacher {
+  width: 50%;
+  height: 10px;
+  border-radius: 4px;
+  background-color: rgba(var(--ion-color-medium-rgb), 0.2);
+}
+
+.pulse {
+  animation: pulse 1.5s infinite ease-in-out;
+}
+
+@keyframes pulse {
+  0% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 0.3;
+  }
+  100% {
+    opacity: 0.6;
+  }
+}
+
+.calendar-header {
+  padding: 16px 12px;
+  background-color: var(--ion-background-color);
+  border-bottom: 1px solid rgba(var(--ion-color-medium-rgb), 0.2);
+}
+
+.week-navigator {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.nav-button {
+  --padding-start: 5vw;
+  --padding-end: 5vw;
+  height: 36px;
+}
+
+.week-display {
+  display: flex;
+  align-items: center;
+  background-color: rgba(var(--ion-color-primary-rgb), 0.1);
+  border-radius: 18px;
+  padding: 8px 16px;
+  font-weight: 500;
+  color: var(--ion-color-primary);
+  font-size: 0.9rem;
+}
+
+.calendar-icon {
+  margin-right: 6px;
+  font-size: 1.1rem;
+}
+
+.days-carousel {
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+  margin: 0 -4px;
+  padding: 4px 4px;
+}
+
+.days-carousel::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+.day-item {
+  flex: 0 0 14.28%;
+  padding: 0 4px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.day-item:active {
+  transform: scale(0.95);
+}
+
+.day-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.day-badge {
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background-color: rgba(var(--ion-color-medium-rgb), 0.1);
+  color: var(--ion-color-medium);
+  font-weight: 500;
+  margin-bottom: 4px;
+  transition: all 0.2s ease;
+}
+
+.selected-day .day-badge {
+  background-color: var(--ion-color-primary);
+  color: white;
+  box-shadow: 0 2px 8px rgba(var(--ion-color-primary-rgb), 0.4);
+}
+
+.today .day-badge {
+  border: 2px solid var(--ion-color-primary);
+}
+
+.selected-day.today .day-badge {
+  border: none;
+}
+
+.date-number {
+  font-size: 0.75rem;
+  color: var(--ion-color-medium);
+  font-weight: 500;
+}
+
+.selected-day .date-number {
+  color: var(--ion-color-primary);
+  font-weight: bold;
+}
+
+.day-badge.today + .date-number {
+  color: var(--ion-color-primary);
+  font-weight: bold;
+
 }
 </style>

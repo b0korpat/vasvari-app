@@ -1,58 +1,41 @@
-import { createRouter, createWebHistory } from '@ionic/vue-router';
-import { RouteRecordRaw } from 'vue-router';
+import {createRouter, createWebHistory} from '@ionic/vue-router';
+import {RouteRecordRaw} from 'vue-router';
 import TabsPage from '../views/TabsPage.vue';
-import LogInPage from '../views/userManagement/LoginPage.vue';
-import RegisterPage from '../views/userManagement/RegisterPage.vue';
+import LogInPage from '../views/LoginPage.vue';
 
 const routes: Array<RouteRecordRaw> = [
-  {
-    path: '/',
-    redirect: '/tabs/news'
-  },
-  {
-    path: '/tabs/',
-    component: TabsPage,
-    children: [
-      {
-        path: '',
-        redirect: '/tabs/news'
-      },
-      {
-        path: 'news',
-        component: () => import('@/views/NewsPage.vue')
-      },
-      {
-        path: 'profile',
-        component: () => import('@/views/Profilepage.vue')
-      },
-      {
-        path: 'tab3',
-        component: () => import('@/views/Tab3Page.vue')
-      },
-      {
-        path: 'timetable',
-        component: () => import('@/views/TimetablePage.vue')
-      },
-      {
-        path: 'settings',
-        component: () => import('@/views/SettingsPage.vue')
-      }
+    {
+        path: '/tabs/',
+        component: TabsPage,
+        children: [
+            {
+                path: '',
+                redirect: '/tabs/home'
+            },
+            {
+                path: 'home',
+                component: () => import('@/views/HomePage.vue')
+            },
+            {
+                path: 'profile',
+                component: () => import('@/views/ProfilePage.vue')
+            },
+            {
+                path: 'timetable',
+                component: () => import('@/views/TimetablePage.vue')
+            },
 
-    ]
-  },
-  {
-    path: '/login',
-    component: LogInPage
-  },
-  {
-    path: '/register',
-    component: RegisterPage
-  }
+        ]
+    },
+    {
+        path: '/login',
+        component: LogInPage
+    }
 ];
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
-  routes
+    history: createWebHistory(import.meta.env.BASE_URL),
+    routes
 });
 
 export default router;
