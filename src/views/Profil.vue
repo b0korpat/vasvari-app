@@ -107,7 +107,7 @@ const router = useRouter();
 const selectedTheme = ref(localStorage.getItem('theme') || 'system');
 const defaultPage = ref(localStorage.getItem('defaultPage') || 'home');
 const isNotificationsEnabled = ref(localStorage.getItem('notificationsEnabled') === 'true');
-const showBreaksBetweenLessons = ref(localStorage.getItem('showBreaksBetweenLessons') !== 'false');
+const showBreaksBetweenLessons = ref(localStorage.getItem('showBreaksBetweenLessons') === 'true');
 
 onMounted(async () => {
   if (isNotificationsEnabled.value) {
@@ -115,6 +115,7 @@ onMounted(async () => {
     await sendFmcToServer();
   }
 });
+
 
 const toggleBreaksDisplay = (event: CustomEvent) => {
   const isEnabled = event.detail.checked;
