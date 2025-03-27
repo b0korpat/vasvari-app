@@ -2,6 +2,9 @@ import {createRouter, createWebHistory} from '@ionic/vue-router';
 import {RouteRecordRaw} from 'vue-router';
 import TabsPage from '../views/TabsPage.vue';
 import LogInPage from '../views/LoginPage.vue';
+import HomePage from '../views/HomePage.vue';
+import ProfilePage from '../views/ProfilePage.vue';
+import TimetablePage from '../views/TimetablePage.vue';
 
 const routes: Array<RouteRecordRaw> = [
     {
@@ -14,15 +17,15 @@ const routes: Array<RouteRecordRaw> = [
             },
             {
                 path: 'home',
-                component: () => import('../views/HomePage.vue')
+                component: HomePage
             },
             {
                 path: 'profile',
-                component: () => import('../views/ProfilePage.vue')
+                component: ProfilePage
             },
             {
                 path: 'timetable',
-                component: () => import('../views/TimetablePage.vue')
+                component: TimetablePage
             },
 
         ]
