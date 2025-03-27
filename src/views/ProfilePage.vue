@@ -116,7 +116,6 @@ onMounted(async () => {
   }
 });
 
-
 const toggleBreaksDisplay = (event: CustomEvent) => {
   const isEnabled = event.detail.checked;
   showBreaksBetweenLessons.value = isEnabled;

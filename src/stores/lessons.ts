@@ -1,5 +1,6 @@
-import {defineStore} from 'pinia';
-import {ref} from 'vue';
+import { defineStore } from 'pinia';
+import { ref } from 'vue';
+import {useUserStore} from "@/stores/user";
 
 export const useLessonStore = defineStore('lessonStore', () => {
     const lessonsByDay = ref<Record<string, any[]>>({});
@@ -24,8 +25,9 @@ export const useLessonStore = defineStore('lessonStore', () => {
         loading.value = spinner;
         console.log('Fetching lessons from API...');
         try {
+            const userStore = useUserStore();
             const response = await fetch(
-                `https://backend-production-f2dd.up.railway.app/api/Lesson/GetLessonsByTimeframe?startDate=${startDate}&endDate=${endDate}`,
+                `https://backend-production-f2dd.up.railway.app/api/Lesson/GetLessonsByTimeframeForStudent?startDate=${startDate}&endDate=${endDate}&studentId=${userStore.uid}`,
                 {
                     method: 'GET',
                     credentials: 'include',
@@ -41,22 +43,26 @@ export const useLessonStore = defineStore('lessonStore', () => {
             const data = await response.json();
             const groupedLessons: Record<string, any[]> = {};
 
-            const formatDate = (date: Date) => {
+            const formatDate = (dateString: string) => {
+                const date = new Date(dateString);
                 const year = date.getFullYear();
                 const month = (date.getMonth() + 1).toString().padStart(2, '0');
                 const day = date.getDate().toString().padStart(2, '0');
                 return `${year}.${month}.${day}`;
             };
 
-            const formatTime = (date: Date) => {
+            const formatTime = (dateString: string) => {
+                const date = new Date(dateString);
                 const hours = date.getHours().toString().padStart(2, '0');
                 const minutes = date.getMinutes().toString().padStart(2, '0');
                 return `${hours}:${minutes}`;
             };
 
+            // Process each lesson
             for (const lesson of data) {
-                const day = formatDate(new Date(lesson.startTime));
+                const day = formatDate(lesson.startTime);
                 if (!groupedLessons[day]) groupedLessons[day] = [];
+
                 groupedLessons[day].push({
                     id: lesson.id,
                     subjectName: lesson.subjectName,
@@ -65,20 +71,19 @@ export const useLessonStore = defineStore('lessonStore', () => {
                     teachername: lesson.teacher,
                     date: lesson.startTime.split('T')[0],
                     studentGroupName: lesson.studentGroupName,
-                    starttime: formatTime(new Date(lesson.startTime)),
-                    endtime: formatTime(new Date(new Date(lesson.startTime).getTime() + 45 * 60 * 1000)),
+                    starttime: formatTime(lesson.startTime),
+                    endtime: formatTime(new Date(new Date(lesson.startTime).getTime() + 45 * 60 * 1000).toISOString()),                    isBreak: false
                 });
             }
 
-            // Sort lessons by start time for each day
+            // Sort and add breaks
             for (const day in groupedLessons) {
+                // Sort lessons by start time
                 groupedLessons[day].sort((a, b) => {
-                    const timeA = a.starttime.split(':').map(Number);
-                    const timeB = b.starttime.split(':').map(Number);
-                    return timeA[0] - timeB[0] || timeA[1] - timeB[1];
+                    return a.starttime.localeCompare(b.starttime);
                 });
 
-                // Add "Szünet" or "Lyukasóra" based on the gap between lessons
+                // Add breaks between lessons
                 const lessonsWithBreaks: any[] = [];
                 for (let i = 0; i < groupedLessons[day].length; i++) {
                     const currentLesson = groupedLessons[day][i];
@@ -86,29 +91,30 @@ export const useLessonStore = defineStore('lessonStore', () => {
 
                     if (i < groupedLessons[day].length - 1) {
                         const nextLesson = groupedLessons[day][i + 1];
-                        const currentEndTime = currentLesson.endtime.split(':').map(Number);
-                        const nextStartTime = nextLesson.starttime.split(':').map(Number);
+                        const currentEnd = currentLesson.endtime.split(':').map(Number);
+                        const nextStart = nextLesson.starttime.split(':').map(Number);
 
-                        const currentEndMinutes = currentEndTime[0] * 60 + currentEndTime[1];
-                        const nextStartMinutes = nextStartTime[0] * 60 + nextStartTime[1];
-
+                        const currentEndMinutes = currentEnd[0] * 60 + currentEnd[1];
+                        const nextStartMinutes = nextStart[0] * 60 + nextStart[1];
                         const gapMinutes = nextStartMinutes - currentEndMinutes;
 
                         if (gapMinutes > 30) {
-                            // Add "Lyukasóra" (gap lesson)
                             lessonsWithBreaks.push({
                                 id: `gap-${currentLesson.id}-${nextLesson.id}`,
                                 name: 'Lyukasóra',
                                 starttime: currentLesson.endtime,
                                 endtime: nextLesson.starttime,
+                                isBreak: true,
+                                breakType: 'gap'
                             });
                         } else if (gapMinutes > 0) {
-                            // Always add "Szünet" (break)
                             lessonsWithBreaks.push({
                                 id: `break-${currentLesson.id}-${nextLesson.id}`,
                                 name: `Szünet (${gapMinutes} perc)`,
                                 starttime: currentLesson.endtime,
                                 endtime: nextLesson.starttime,
+                                isBreak: true,
+                                breakType: 'short'
                             });
                         }
                     }
@@ -121,6 +127,8 @@ export const useLessonStore = defineStore('lessonStore', () => {
             console.log('Lessons updated from API:', lessonsByDay.value);
         } catch (error) {
             console.error('Error fetching lessons:', error);
+            // Fall back to localStorage if available
+            loadFromLocalStorage();
         } finally {
             loading.value = false;
         }

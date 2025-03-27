@@ -3,7 +3,7 @@ import {RouteRecordRaw} from 'vue-router';
 import TabsPage from '../views/TabsPage.vue';
 import LogInPage from '../views/LoginPage.vue';
 import HomePage from '../views/HomePage.vue';
-import Profil from '../views/Profil.vue';
+import ProfilePage from '../views/ProfilePage.vue';
 import TimetablePage from '../views/TimetablePage.vue';
 
 const routes: Array<RouteRecordRaw> = [
@@ -21,7 +21,7 @@ const routes: Array<RouteRecordRaw> = [
             },
             {
                 path: 'profile',
-                component: Profil
+                component: ProfilePage
             },
             {
                 path: 'timetable',
