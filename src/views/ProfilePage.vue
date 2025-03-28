@@ -188,7 +188,6 @@ const changeDefaultPage = (page: string) => {
 
 const goLogout = () => {
   logout();
-  router.push('/login');
 };
 </script>
 

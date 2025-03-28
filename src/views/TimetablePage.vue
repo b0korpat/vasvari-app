@@ -5,14 +5,14 @@
       <div class="page-load-animation">
         <div class="calendar-header">
           <div class="week-navigator">
-            <ion-button class="nav-button" fill="clear" @click="prevWeek">
+            <ion-button fill="clear" class="nav-button" @click="prevWeek">
               <ion-icon :icon="arrowBackOutline" size="small"></ion-icon>
             </ion-button>
             <div class="week-display">
               <ion-icon :icon="calendarOutline" class="calendar-icon"></ion-icon>
               <span>{{ currentWeek }}</span>
             </div>
-            <ion-button class="nav-button" fill="clear" @click="nextWeek">
+            <ion-button fill="clear" class="nav-button" @click="nextWeek">
               <ion-icon :icon="arrowForwardOutline" size="small"></ion-icon>
             </ion-button>
           </div>
@@ -84,40 +84,40 @@
 
               <!-- Lessons list -->
               <div v-else class="lessons-list">
-                <div
-                    v-for="(lesson, index) in lessonStore.lessonsByDay[day]?.filter((lesson) => {
-                      if (lesson.name === 'Lyukasóra' || isRegularLesson(lesson)) {
-                        return true;
-                      }
-                      if (lesson.name?.startsWith('Szünet')) {
-                        return showBreaksBetweenLessons;
-                      }
-                      return false;
-                    })"
-                    :key="lesson.id"
-                    :class="['lesson-item', getLessonClass(lesson), { 'current-lesson': isCurrentLesson(lesson, day) }]"
-                    @click="openLessonDetails(lesson)"
-                >
-                  <div v-if="isRegularLesson(lesson)" class="time-indicator">
-                    <div class="lesson-number">{{ getLessonNumber(day, lesson.id) }}</div>
-                    <div class="lesson-time">
-                      <span>{{ lesson.starttime }}</span>
-                      <span>{{ lesson.endtime }}</span>
-                    </div>
-                  </div>
+  <div
+    v-for="(lesson, index) in lessonStore.lessonsByDay[day]?.filter((lesson) => {
+      if (lesson.name === 'Lyukasóra' || isRegularLesson(lesson)) {
+        return true;
+      }
+      if (lesson.name?.startsWith('Szünet')) {
+        return showBreaksBetweenLessons;
+      }
+      return false;
+    })"
+    :key="lesson.id"
+    :class="['lesson-item', getLessonClass(lesson), { 'current-lesson': isCurrentLesson(lesson, day) }]"
+    @click="openLessonDetails(lesson)"
+  >
+    <div v-if="isRegularLesson(lesson)" class="time-indicator">
+      <div class="lesson-number">{{ getLessonNumber(day, lesson.id) }}</div>
+      <div class="lesson-time">
+        <span>{{ lesson.starttime }}</span>
+        <span>{{ lesson.endtime }}</span>
+      </div>
+    </div>
 
-                  <div v-if="isRegularLesson(lesson)" class="lesson-content">
-                    <div class="lesson-name">{{ lesson.displayName }}</div>
-                    <div class="lesson-room">{{ lesson.room || 'No room' }}</div>
-                    <div v-if="lesson.teachername" class="lesson-teacher">{{ lesson.teachername }}</div>
-                  </div>
+    <div v-if="isRegularLesson(lesson)" class="lesson-content">
+      <div class="lesson-name">{{ lesson.displayName }}</div>
+      <div class="lesson-room">{{ lesson.room || 'No room' }}</div>
+      <div v-if="lesson.teachername" class="lesson-teacher">{{ lesson.teachername }}</div>
+    </div>
 
-                  <div v-else class="break-content">
-                    <ion-icon :icon="timeOutline" class="break-icon"></ion-icon>
-                    <div>{{ lesson.name }}</div>
-                  </div>
-                </div>
-              </div>
+    <div v-else class="break-content">
+      <ion-icon :icon="timeOutline" class="break-icon"></ion-icon>
+      <div>{{ lesson.name }}</div>
+    </div>
+  </div>
+</div>
             </ion-content>
           </swiper-slide>
         </swiper>
@@ -126,13 +126,12 @@
 
     <ion-modal
         :is-open="isModalOpen"
-        :swipe-to-close="true"
         class="lesson-details-modal"
         @didDismiss="isModalOpen = false"
+        :swipe-to-close="true"
     >
       <div class="modal-content">
-        <div :class="{'current-lesson-header': isCurrentLesson(selectedLesson, selectedLesson?.date)}"
-             class="modal-header">
+        <div class="modal-header" :class="{'current-lesson-header': isCurrentLesson(selectedLesson, selectedLesson?.date)}">
           <div class="header-top">
             <ion-buttons>
               <ion-button @click="isModalOpen = false">
@@ -197,11 +196,16 @@ import {
   IonCardHeader,
   IonCardTitle,
   IonContent,
+  IonHeader,
   IonIcon,
+  IonLabel,
   IonModal,
   IonPage,
   IonRefresher,
   IonRefresherContent,
+  IonSpinner,
+  IonTitle,
+  IonToolbar,
 } from '@ionic/vue';
 import {onMounted, ref} from 'vue';
 import {Swiper, SwiperSlide} from 'swiper/vue';
@@ -209,6 +213,7 @@ import 'swiper/swiper-bundle.css';
 import {
   arrowBackOutline,
   arrowForwardOutline,
+  bookOutline,
   calendarOutline,
   closeOutline,
   locationOutline,
@@ -217,6 +222,7 @@ import {
   sunnyOutline,
   timeOutline
 } from 'ionicons/icons';
+import { computed } from 'vue';
 
 import TopBar from '@/components/TopBar.vue';
 import {useLessonStore} from '@/stores/lessons';
@@ -462,7 +468,7 @@ onMounted(() => {
 }
 
 .lessons-container {
-  height: calc(100vh - 300px);
+  height: calc(100vh - 280px);
   padding: 0 10px;
   background-color: var(--ion-background-color);
 }
@@ -592,7 +598,7 @@ onMounted(() => {
   --width: 90%;
   --max-width: 500px;
   --border-radius: 16px;
-  --max-height: 500px;
+--max-height: 500px;
   --box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
 
 }
@@ -686,7 +692,6 @@ onMounted(() => {
   color: var(--ion-color-medium);
   margin-top: 4px !important;
 }
-
 /* Skeleton loading styles */
 
 .skeleton-lesson-item {
@@ -770,7 +775,6 @@ onMounted(() => {
     opacity: 0.6;
   }
 }
-
 .calendar-header {
   padding: 16px 12px;
   background-color: var(--ion-background-color);
@@ -785,8 +789,9 @@ onMounted(() => {
 }
 
 .nav-button {
-  --padding-start: 5vw;
-  --padding-end: 5vw;
+  --padding-start: 8px;
+  --padding-end: 8px;
+  margin: 0;
   height: 36px;
 }
 
@@ -874,7 +879,6 @@ onMounted(() => {
   color: var(--ion-color-primary);
   font-weight: bold;
 }
-
 .day-badge.today + .date-number {
   color: var(--ion-color-primary);
   font-weight: bold;
