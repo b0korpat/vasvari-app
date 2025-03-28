@@ -61,6 +61,7 @@ export const useUserStore = defineStore('user', () => {
     localStorage.removeItem('email');
     localStorage.removeItem('uid');
     localStorage.removeItem('token');
+
   };
 
   return {

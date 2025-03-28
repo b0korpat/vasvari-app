@@ -66,21 +66,8 @@ export const logout = async (): Promise<boolean | null> => {
 
         if (!response.ok) throw new Error('Logout failed');
 
-        userStore.clearUser();
-        
-        localStorage.clear();
 
-        // Clear sessionStorage
-        sessionStorage.clear();
-
-        // Clear cookies
-        document.cookie.split(';').forEach(cookie => {
-            const eqPos = cookie.indexOf('=');
-            const name = eqPos > -1 ? cookie.slice(0, eqPos) : cookie;
-            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
-        });
-
-        router.push('/login'); // Redirect to login page
+        router.push('/login');
         console.log('Logout successful');
         return true;
     } catch (error) {

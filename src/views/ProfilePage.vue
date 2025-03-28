@@ -188,6 +188,22 @@ const changeDefaultPage = (page: string) => {
 
 const goLogout = () => {
   logout();
+  
+  userStore.clearUser();
+        
+        localStorage.clear();
+
+        // Clear sessionStorage
+        sessionStorage.clear();
+
+        // Clear cookies
+        document.cookie.split(';').forEach(cookie => {
+            const eqPos = cookie.indexOf('=');
+            const name = eqPos > -1 ? cookie.slice(0, eqPos) : cookie;
+            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
+        });
+        location.reload();
+  router.push('/login');
 };
 </script>
 
