@@ -62,6 +62,7 @@
           Kijelentkezés
         </ion-button>
       </div>
+      <div class="version-number">{{currentVersion}}</div>
     </ion-content>
   </ion-page>
 </template>
@@ -84,7 +85,7 @@ import {
   IonPage,
   IonToggle,
 } from '@ionic/vue';
-import { computed, ref, onMounted } from 'vue';
+import { computed, ref, onMounted, version } from 'vue';
 import { useRouter } from 'vue-router';
 import {
   calendarOutline,
@@ -110,6 +111,7 @@ import TopBar from "@/components/TopBar.vue";
 import { applyTheme } from "@/components/themeChange";
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 
+const currentVersion = localStorage.getItem('currentVersion') || version;
 const userStore = useUserStore();
 const router = useRouter();
 const selectedTheme = ref(localStorage.getItem('theme') || 'system');
@@ -435,4 +437,10 @@ ion-item {
   font-size: 1.8rem;
   font-weight: 500;
 }
+.version-number {
+    text-align: center;
+    font-size: 0.8rem;
+    color: #7a7a7a;
+    margin-top: 8px;
+  }
 </style>
