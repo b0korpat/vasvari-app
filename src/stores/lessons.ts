@@ -2,7 +2,6 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { useUserStore } from "@/stores/user";
-import { Storage } from '@capacitor/storage';
 
 export const useLessonStore = defineStore('lessonStore', () => {
     const lessonsByDay = ref<Record<string, any[]>>({});
@@ -13,33 +12,31 @@ export const useLessonStore = defineStore('lessonStore', () => {
     const dateFormatCache = new Map<string, string>();
     const timeFormatCache = new Map<string, string>();
 
-    const saveToStorage = async () => {
+    const saveToLocalStorage = () => {
         const lessonsToSave = JSON.stringify(lessonsByDay.value);
-        const currentStorage = await Storage.get({ key: 'lessonsByDay' });
-
-        if (currentStorage.value !== lessonsToSave) {
+        if (localStorage.getItem('lessonsByDay') !== lessonsToSave) {
+            localStorage.setItem('lessonsByDay', lessonsToSave);
             const now = new Date().toISOString();
-            await Storage.set({ key: 'lessonsByDay', value: lessonsToSave });
-            await Storage.set({ key: 'lessonsLastUpdate', value: now });
+            localStorage.setItem('lessonsLastUpdate', now);
             lastUpdate.value = new Date(now);
         }
     };
 
-    const loadFromStorage = async () => {
-        try {
-            const savedLessons = await Storage.get({ key: 'lessonsByDay' });
-            const savedLastUpdate = await Storage.get({ key: 'lessonsLastUpdate' });
+    const loadFromLocalStorage = () => {
+        const savedLessons = localStorage.getItem('lessonsByDay');
+        const savedLastUpdate = localStorage.getItem('lessonsLastUpdate');
 
-            if (savedLessons.value) {
-                lessonsByDay.value = JSON.parse(savedLessons.value);
-                if (savedLastUpdate.value) {
-                    lastUpdate.value = new Date(savedLastUpdate.value);
+        if (savedLessons) {
+            try {
+                lessonsByDay.value = JSON.parse(savedLessons);
+                if (savedLastUpdate) {
+                    lastUpdate.value = new Date(savedLastUpdate);
                 }
+            } catch (e) {
+                console.error('Failed to parse saved lessons', e);
+                localStorage.removeItem('lessonsByDay');
+                localStorage.removeItem('lessonsLastUpdate');
             }
-        } catch (e) {
-            console.error('Failed to parse saved lessons', e);
-            await Storage.remove({ key: 'lessonsByDay' });
-            await Storage.remove({ key: 'lessonsLastUpdate' });
         }
     };
 
@@ -162,7 +159,6 @@ export const useLessonStore = defineStore('lessonStore', () => {
         try {
             const userStore = useUserStore();
             const accessToken = localStorage.getItem('token');
-
             if (!accessToken) throw new Error('No access token');
 
             const response = await fetch(
@@ -191,7 +187,7 @@ export const useLessonStore = defineStore('lessonStore', () => {
                     }
                 });
                 lessonsByDay.value = updatedLessons;
-                await saveToStorage();
+                saveToLocalStorage();
                 return;
             }
 
@@ -199,10 +195,10 @@ export const useLessonStore = defineStore('lessonStore', () => {
 
             const data = await response.json();
             lessonsByDay.value = processLessonData(data, startDate, endDate);
-            await saveToStorage();
+            saveToLocalStorage();
         } catch (error) {
             console.error('Error fetching lessons:', error);
-            await loadFromStorage();
+            loadFromLocalStorage();
         } finally {
             loading.value = false;
         }
@@ -253,7 +249,7 @@ export const useLessonStore = defineStore('lessonStore', () => {
         lessonsByDay,
         loading,
         lastUpdate,
-        loadFromStorage,
+        loadFromLocalStorage,
         fetchLessons,
         refreshLessons
     };

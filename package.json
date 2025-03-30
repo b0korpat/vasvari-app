@@ -21,7 +21,6 @@
     "@capacitor/keyboard": "6.0.3",
     "@capacitor/push-notifications": "6.0.2",
     "@capacitor/status-bar": "6.0.2",
-    "@capacitor/storage": "^1.2.5",
     "@formkit/auto-animate": "^0.8.2",
     "@ionic/vue": "^8.0.0",
     "@ionic/vue-router": "^8.0.0",

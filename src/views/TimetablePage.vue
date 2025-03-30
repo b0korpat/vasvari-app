@@ -374,7 +374,7 @@ const onSlideChange = (swiper: any) => {
 const doRefresh = async (event: any) => {
   try {
     const [start, end] = currentWeek.value.split(' - ').map((date) => date.replace(/\./g, '-'));
-    await lessonStore.refreshLessons(start, end, true);
+    await lessonStore.refreshLessons(start, end);
   } catch (error) {
     console.error('Error during refresh:', error);
   } finally {
@@ -403,15 +403,15 @@ const openLessonDetails = (lesson: any) => {
 
 // Lifecycle hooks
 onMounted(async () => {
+  holidayStore.fetchHolidays();
+  lessonStore.loadFromLocalStorage();
   getCurrentWeek();
-  updateSelectedDay();
-  await holidayStore.fetchHolidays()
-  await lessonStore.refreshLessons();
 
   await nextTick();
+  updateSelectedDay();
 
-
-
+  const [start, end] = currentWeek.value.split(' - ').map(d => d.replace(/\./g, '-'));
+  lessonStore.fetchLessons(start, end, !lessonStore.lessonsByDay[start]);
 });
 </script>
 
