@@ -1,4 +1,4 @@
-package com.vasvari.vasvariapp;
+package com.vasvariapp.app;
 
 import com.getcapacitor.BridgeActivity;
 

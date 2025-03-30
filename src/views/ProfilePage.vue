@@ -6,8 +6,12 @@
       <div class="page-content page-load-animation">
         <ion-card class="profile-card">
           <div class="profile-header">
-            <ion-avatar class="profile-avatar">
-              <ion-icon :icon="personOutline" class="avatar-icon"></ion-icon>
+            <ion-avatar class="profile-avatar" @click="showPhotoActionSheet">
+              <img v-if="profileImage" :src="profileImage" alt="Profile" />
+              <div v-else class="initials-avatar">{{ userInitials }}</div>
+              <div class="edit-avatar-indicator">
+                <ion-icon :icon="cameraOutline" class="edit-icon"></ion-icon>
+              </div>
             </ion-avatar>
             <div class="user-info">
               <h2 class="user-name">{{ userStore.displayLastName }} {{ userStore.displayFirstName }}</h2>
@@ -90,17 +94,21 @@ import {
   logOutOutline,
   moon,
   notificationsOutline,
-  personOutline,
+
   phonePortrait,
   settingsOutline,
   sunny,
   timeOutline,
+  camera,
+  image,
+  cameraOutline, trash
 } from 'ionicons/icons';
 import { useUserStore } from '@/stores/user';
 import { logout } from '@/components/AuthFunctions';
 import { setupPushNotifications, disablePushNotifications, sendFmcToServer } from '@/components/setupPushNotifications';
 import TopBar from "@/components/TopBar.vue";
 import { applyTheme } from "@/components/themeChange";
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 
 const userStore = useUserStore();
 const router = useRouter();
@@ -108,13 +116,84 @@ const selectedTheme = ref(localStorage.getItem('theme') || 'system');
 const defaultPage = ref(localStorage.getItem('defaultPage') || 'home');
 const isNotificationsEnabled = ref(localStorage.getItem('notificationsEnabled') === 'true');
 const showBreaksBetweenLessons = ref(localStorage.getItem('showBreaksBetweenLessons') === 'true');
+const profileImage = ref(localStorage.getItem('profileImage') || null);
 
 onMounted(async () => {
   if (isNotificationsEnabled.value) {
     await setupPushNotifications();
     await sendFmcToServer();
   }
+
+  // Load saved profile picture if exists
+  const savedImage = localStorage.getItem('profileImage');
+  if (savedImage) {
+    profileImage.value = savedImage;
+  }
 });
+
+const userInitials = computed(() => {
+  return userStore.lastName.charAt(0).toUpperCase()+userStore.firstName.charAt(0);
+});
+
+const showPhotoActionSheet = async () => {
+  const buttons = [
+    { text: 'Kamera', icon: camera, handler: () => takePhoto() },
+    { text: 'Galéria', icon: image, handler: () => selectFromGallery() },
+    { text: 'Profilkép eltávolítása', icon: trash, handler: () => removeProfileImage() },
+    { text: 'Mégse', role: 'cancel', icon: close },
+  ];
+
+  const actionSheet = await actionSheetController.create({
+    header: 'Profilkép választása',
+    buttons: buttons,
+  });
+  await actionSheet.present();
+};
+
+const removeProfileImage = async () => {
+  profileImage.value = null;
+  localStorage.removeItem('profileImage');
+};
+
+const takePhoto = async () => {
+  try {
+    const photo = await Camera.getPhoto({
+      quality: 90,
+      allowEditing: false,
+      resultType: CameraResultType.DataUrl,
+      source: CameraSource.Camera,
+      width: 300,
+      height: 300,
+    });
+
+    if (photo.dataUrl) {
+      profileImage.value = photo.dataUrl;
+      localStorage.setItem('profileImage', photo.dataUrl);
+    }
+  } catch (error) {
+    console.error('Error taking photo', error);
+  }
+};
+
+const selectFromGallery = async () => {
+  try {
+    const photo = await Camera.getPhoto({
+      quality: 90,
+      allowEditing: false,
+      resultType: CameraResultType.DataUrl,
+      source: CameraSource.Photos,
+      width: 300,
+      height: 300,
+    });
+
+    if (photo.dataUrl) {
+      profileImage.value = photo.dataUrl;
+      localStorage.setItem('profileImage', photo.dataUrl);
+    }
+  } catch (error) {
+    console.error('Error selecting photo', error);
+  }
+};
 
 const toggleBreaksDisplay = (event: CustomEvent) => {
   const isEnabled = event.detail.checked;
@@ -188,21 +267,21 @@ const changeDefaultPage = (page: string) => {
 
 const goLogout = () => {
   logout();
-  
+
   userStore.clearUser();
-        
-        localStorage.clear();
 
-        // Clear sessionStorage
-        sessionStorage.clear();
+  localStorage.clear();
 
-        // Clear cookies
-        document.cookie.split(';').forEach(cookie => {
-            const eqPos = cookie.indexOf('=');
-            const name = eqPos > -1 ? cookie.slice(0, eqPos) : cookie;
-            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
-        });
-        location.reload();
+  // Clear sessionStorage
+  sessionStorage.clear();
+
+  // Clear cookies
+  document.cookie.split(';').forEach(cookie => {
+    const eqPos = cookie.indexOf('=');
+    const name = eqPos > -1 ? cookie.slice(0, eqPos) : cookie;
+    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
+  });
+  location.reload();
   router.push('/login');
 };
 </script>
@@ -230,6 +309,7 @@ const goLogout = () => {
 }
 
 .profile-avatar {
+  position: relative; /* Required for absolute positioning of the indicator */
   width: 70px;
   height: 70px;
   display: flex;
@@ -237,6 +317,39 @@ const goLogout = () => {
   justify-content: center;
   background-color: rgba(255, 255, 255, 0.2);
   margin-right: 20px;
+  overflow: visible; /* Changed from hidden to allow the indicator to show outside */
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.edit-avatar-indicator {
+  position: absolute;
+  bottom: -5px;
+  right: -5px;
+  background-color: var(--ion-color-primary);
+  border-radius: 50%;
+  width: 25px;
+  height: 25px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid white;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+.edit-icon {
+  font-size: 14px;
+  color: white;
+}
+
+.profile-avatar:active {
+  transform: scale(0.95);
+}
+
+.profile-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .avatar-icon {
@@ -309,5 +422,17 @@ ion-item {
   --border-radius: 12px;
   height: 48px;
   font-weight: 600;
+}
+.initials-avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--ion-color-primary-tint);
+  color: white;
+  font-size: 1.8rem;
+  font-weight: 500;
 }
 </style>
