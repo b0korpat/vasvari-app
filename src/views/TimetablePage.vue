@@ -403,15 +403,15 @@ const openLessonDetails = (lesson: any) => {
 
 // Lifecycle hooks
 onMounted(async () => {
-  holidayStore.fetchHolidays();
-  lessonStore.loadFromLocalStorage();
   getCurrentWeek();
-
-  await nextTick();
   updateSelectedDay();
 
-  const [start, end] = currentWeek.value.split(' - ').map(d => d.replace(/\./g, '-'));
-  lessonStore.fetchLessons(start, end, !lessonStore.lessonsByDay[start]);
+  holidayStore.fetchHolidays();
+  lessonStore.loadFromLocalStorage();
+  lessonStore.refreshLessons();
+ 
+ 
+  await nextTick();
 });
 </script>
 

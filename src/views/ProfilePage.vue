@@ -61,8 +61,8 @@
           <ion-icon :icon="logOutOutline" slot="start"></ion-icon>
           Kijelentkezés
         </ion-button>
+        <div class="version-number">{{currentVersion}}</div>
       </div>
-      <div class="version-number">{{currentVersion}}</div>
     </ion-content>
   </ion-page>
 </template>
@@ -126,7 +126,6 @@ onMounted(async () => {
     await sendFmcToServer();
   }
 
-  // Load saved profile picture if exists
   const savedImage = localStorage.getItem('profileImage');
   if (savedImage) {
     profileImage.value = savedImage;

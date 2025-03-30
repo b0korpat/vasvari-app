@@ -6,12 +6,11 @@
 
 <script setup lang="ts">
 import { IonApp, IonRouterOutlet, alertController } from '@ionic/vue';
-import { onMounted } from 'vue';
-import axios from 'axios';
+import { onMounted, version } from 'vue';
 
-// Define your update URL
+
 const updateUrl = "https://b0korpat.github.io/mobil_dist/update.json";
-const currentVersion = "1.0.0"; // Change this dynamically
+const currentVersion = "v0.0.2";
 localStorage.setItem("currentVersion", currentVersion);
 
 onMounted(async () => {
@@ -41,18 +40,18 @@ const checkForUpdates = async () => {
 
 const showUpdateAlert = async (downloadUrl: string) => {
   const alert = await alertController.create({
-    header: "Update Available",
-    message: "A new version is available. Would you like to update now?",
+    header: "Frissítés elérhető",
+    message: "Egy új veriója a VasváriAppnak elérhető. Kérlek frissítsd.",
     buttons: [
-      { text: "Later", role: "cancel" },
-      { text: "Update", handler: () => downloadUpdate(downloadUrl) }
+      { text: "Késöbb", role: "cancel" },
+      { text: "Frissítés", handler: () => downloadUpdate(downloadUrl) }
     ]
   });
   await alert.present();
 };
 
 const downloadUpdate = (url: string) => {
-  window.open(url, "_system"); // Opens the APK download link in a browser
+  window.open(url, "_system");
 };
 </script>
 
