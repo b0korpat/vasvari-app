@@ -14,7 +14,7 @@ const routes: Array<RouteRecordRaw> = [
         children: [
             {
                 path: '',
-                redirect: '/tabs/home'
+                redirect: () => getDefaultRoute()
             },
             {
                 path: 'home',
@@ -37,11 +37,11 @@ const routes: Array<RouteRecordRaw> = [
     },
     {
         path: '/',
-        redirect: '/tabs/home'
+        redirect: () => getDefaultRoute()
     },
     {
         path: '/:pathMatch(.*)*',
-        redirect: '/tabs/home'
+        redirect: () => getDefaultRoute()
     }
 ];
 
@@ -49,6 +49,21 @@ const router = createRouter({
     history: createWebHistory(import.meta.env.BASE_URL),
     routes
 });
+
+router.beforeResolve((to, from, next) => {
+    // If navigating to an empty path, redirect to the default route
+    if (to.matched.length === 0) {
+        next(getDefaultRoute());
+    } else {
+        next();
+    }
+});
+
+function getDefaultRoute() {
+    const defaultPage = localStorage.getItem('defaultPage') || 'home';
+    return `/tabs/${defaultPage}`;
+}
+
 router.beforeEach((to, from, next) => {
     const userStore = useUserStore();
     // If not logged in, redirect to /login

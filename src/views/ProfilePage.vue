@@ -267,6 +267,14 @@ const changeTheme = (theme: string) => {
 const changeDefaultPage = (page: string) => {
   defaultPage.value = page;
   localStorage.setItem('defaultPage', page);
+
+  // Force the current route to match the default page if we're on the home route
+  const currentRoute = router.currentRoute.value;
+  if (currentRoute.path === '/tabs/home' && page === 'timetable') {
+    router.replace('/tabs/timetable');
+  } else if (currentRoute.path === '/tabs/timetable' && page === 'home') {
+    router.replace('/tabs/home');
+  }
 };
 
 const goLogout = () => {
@@ -313,7 +321,7 @@ const goLogout = () => {
 }
 
 .profile-avatar {
-  position: relative; /* Required for absolute positioning of the indicator */
+  position: relative;
   width: 70px;
   height: 70px;
   display: flex;
@@ -321,11 +329,12 @@ const goLogout = () => {
   justify-content: center;
   background-color: rgba(255, 255, 255, 0.2);
   margin-right: 20px;
-  overflow: visible; /* Changed from hidden to allow the indicator to show outside */
+  overflow: visible;
   cursor: pointer;
   transition: transform 0.2s;
+  border-radius: 50% !important; /* Force circular shape */
+  aspect-ratio: 1/1; /* Ensure perfect square */
 }
-
 .edit-avatar-indicator {
   position: absolute;
   bottom: -5px;
@@ -354,6 +363,7 @@ const goLogout = () => {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  border-radius: 50%;
 }
 
 .avatar-icon {

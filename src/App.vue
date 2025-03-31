@@ -10,7 +10,7 @@ import { onMounted } from 'vue';
 
 
 const updateUrl = "https://b0korpat.github.io/mobil_dist/update.json";
-const currentVersion = "v0.0.3";
+const currentVersion = "v0.0.4";
 localStorage.setItem("currentVersion", currentVersion);
 
 onMounted(async () => {
@@ -51,7 +51,7 @@ const showUpdateAlert = async (downloadUrl: string) => {
 };
 
 const downloadUpdate = (url: string) => {
-  window.open(url, "_system");
+  window.open(url, '_blank');
 };
 </script>
 
