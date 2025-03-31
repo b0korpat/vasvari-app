@@ -34,6 +34,14 @@ const routes: Array<RouteRecordRaw> = [
     {
         path: '/login',
         component: LogInPage
+    },
+    {
+        path: '/',
+        redirect: '/tabs/home'
+    },
+    {
+        path: '/:pathMatch(.*)*',
+        redirect: '/tabs/home'
     }
 ];
 

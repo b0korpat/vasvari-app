@@ -20,7 +20,7 @@ export const useHolidayStore = defineStore('holiday', () => {
   const LOCAL_STORAGE_KEY = 'holidaysData';
 
   const fetchHolidays = async () => {
-    let userStore = useUserStore();
+    const userStore = useUserStore();
     try {
       const response = await fetch('https://backend-production-f2dd.up.railway.app/api/Break', {
         method: 'GET',

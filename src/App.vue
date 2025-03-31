@@ -6,11 +6,11 @@
 
 <script setup lang="ts">
 import { IonApp, IonRouterOutlet, alertController } from '@ionic/vue';
-import { onMounted, version } from 'vue';
+import { onMounted } from 'vue';
 
 
 const updateUrl = "https://b0korpat.github.io/mobil_dist/update.json";
-const currentVersion = "v0.0.2";
+const currentVersion = "v0.0.3";
 localStorage.setItem("currentVersion", currentVersion);
 
 onMounted(async () => {

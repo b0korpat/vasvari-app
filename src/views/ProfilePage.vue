@@ -85,31 +85,31 @@ import {
   IonPage,
   IonToggle,
 } from '@ionic/vue';
-import { computed, ref, onMounted, version } from 'vue';
-import { useRouter } from 'vue-router';
+import {computed, onMounted, ref, version} from 'vue';
+import {useRouter} from 'vue-router';
 import {
   calendarOutline,
+  camera,
+  cameraOutline,
   close,
   colorPalette,
   home as homeOutline,
+  image,
   logOutOutline,
   moon,
   notificationsOutline,
-
   phonePortrait,
   settingsOutline,
   sunny,
   timeOutline,
-  camera,
-  image,
-  cameraOutline, trash
+  trash
 } from 'ionicons/icons';
-import { useUserStore } from '@/stores/user';
-import { logout } from '@/components/AuthFunctions';
-import { setupPushNotifications, disablePushNotifications, sendFmcToServer } from '@/components/setupPushNotifications';
+import {useUserStore} from '@/stores/user';
+import {logout} from '@/components/AuthFunctions';
+import {disablePushNotifications, sendFmcToServer, setupPushNotifications} from '@/components/setupPushNotifications';
 import TopBar from "@/components/TopBar.vue";
-import { applyTheme } from "@/components/themeChange";
-import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import {applyTheme} from "@/components/themeChange";
+import {Camera, CameraResultType, CameraSource} from '@capacitor/camera';
 
 const currentVersion = localStorage.getItem('currentVersion') || version;
 const userStore = useUserStore();
@@ -120,18 +120,19 @@ const isNotificationsEnabled = ref(localStorage.getItem('notificationsEnabled') 
 const showBreaksBetweenLessons = ref(localStorage.getItem('showBreaksBetweenLessons') === 'true');
 const profileImage = ref(localStorage.getItem('profileImage') || null);
 
+
+const refreshProfileImage = () => {
+  profileImage.value = localStorage.getItem('profileImage');
+};
+
 onMounted(async () => {
   if (isNotificationsEnabled.value) {
     await setupPushNotifications();
     await sendFmcToServer();
   }
 
-  const savedImage = localStorage.getItem('profileImage');
-  if (savedImage) {
-    profileImage.value = savedImage;
-  }
+  refreshProfileImage();
 });
-
 const userInitials = computed(() => {
   return userStore.lastName.charAt(0).toUpperCase()+userStore.firstName.charAt(0);
 });
@@ -152,8 +153,8 @@ const showPhotoActionSheet = async () => {
 };
 
 const removeProfileImage = async () => {
-  profileImage.value = null;
   localStorage.removeItem('profileImage');
+  profileImage.value = null;
 };
 
 const takePhoto = async () => {
@@ -168,8 +169,9 @@ const takePhoto = async () => {
     });
 
     if (photo.dataUrl) {
-      profileImage.value = photo.dataUrl;
       localStorage.setItem('profileImage', photo.dataUrl);
+      // Force refresh from localStorage to ensure UI consistency
+      refreshProfileImage();
     }
   } catch (error) {
     console.error('Error taking photo', error);
@@ -188,8 +190,9 @@ const selectFromGallery = async () => {
     });
 
     if (photo.dataUrl) {
-      profileImage.value = photo.dataUrl;
       localStorage.setItem('profileImage', photo.dataUrl);
+      // Force refresh from localStorage to ensure UI consistency
+      refreshProfileImage();
     }
   } catch (error) {
     console.error('Error selecting photo', error);
