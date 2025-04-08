@@ -37,6 +37,7 @@
         <swiper
             :initial-slide="selectedDayIndex"
             :slides-per-view="1"
+            :resistance-ratio="0"
             @slideChange="onSlideChange"
             @swiper="onSwiperInit"
         >
@@ -79,30 +80,33 @@
 
               <div v-else class="lessons-list">
                 <div
-                    v-for="lesson in filteredLessons(day)"
-                    :key="lesson.id"
-                    :class="['lesson-item', getLessonClass(lesson), { 'current-lesson': isCurrentLesson(lesson, day) }]"
-                    @click="openLessonDetails(lesson)"
-                >
-                  <div v-if="isRegularLesson(lesson)" class="time-indicator">
-                    <div class="lesson-number">{{ getLessonNumber(day, lesson.id) }}</div>
-                    <div class="lesson-time">
-                      <span>{{ lesson.starttime }}</span>
-                      <span>{{ lesson.endtime }}</span>
-                    </div>
-                  </div>
+                  v-for="lesson in filteredLessons(day)"
+                  :key="lesson.id"
+                  :class="['lesson-item', getLessonClass(lesson), { 'current-lesson': isCurrentLesson(lesson, day) }]"
+                  @click="openLessonDetails(lesson)"
+              >
+                <div v-if="isRegularLesson(lesson)" class="room-pill" v-show="lesson.room">
+                  {{ lesson.shortroom }}
+                </div>
 
-                  <div v-if="isRegularLesson(lesson)" class="lesson-content">
-                    <div class="lesson-name">{{ lesson.displayName }}</div>
-                    <div class="lesson-room">{{ lesson.room || 'No room' }}</div>
-                    <div v-if="lesson.teachername" class="lesson-teacher">{{ lesson.teachername }}</div>
-                  </div>
-
-                  <div v-else class="break-content">
-                    <ion-icon :icon="timeOutline" class="break-icon"></ion-icon>
-                    <div>{{ lesson.name }}</div>
+                <div v-if="isRegularLesson(lesson)" class="time-indicator">
+                  <div class="lesson-number">{{ getLessonNumber(day, lesson.id) }}</div>
+                  <div class="lesson-time">
+                    <span>{{ lesson.starttime }}</span>
+                    <span>{{ lesson.endtime }}</span>
                   </div>
                 </div>
+
+                <div v-if="isRegularLesson(lesson)" class="lesson-content">
+                  <div class="lesson-name">{{ lesson.displayName }}</div>
+                  <div v-if="lesson.teachername" class="lesson-teacher">{{ lesson.teachername }}</div>
+                </div>
+
+                <div v-else class="break-content">
+                  <ion-icon :icon="timeOutline" class="break-icon"></ion-icon>
+                  <div>{{ lesson.name }}</div>
+                </div>
+              </div>
               </div>
             </ion-content>
           </swiper-slide>
@@ -368,8 +372,34 @@ const goToSlide = (index: number) => {
 };
 
 const onSlideChange = (swiper: any) => {
-  selectedDayIndex.value = swiper.activeIndex;
+  const previousIndex = selectedDayIndex.value;
+  const newIndex = swiper.activeIndex;
+
+  // Update the selected day index
+  selectedDayIndex.value = newIndex;
+
+  // Check if we swiped from Monday to Sunday (left swipe on Monday)
+  if (previousIndex === 0 && newIndex === 6) {
+    prevWeek();
+    // After changing week, move to Sunday of the new week
+    nextTick(() => {
+      if (swiperRef.value) {
+        swiperRef.value.slideTo(6);
+      }
+    });
+  }
+  // Check if we swiped from Sunday to Monday (right swipe on Sunday)
+  else if (previousIndex === 6 && newIndex === 0) {
+    nextWeek();
+    // After changing week, move to Monday of the new week
+    nextTick(() => {
+      if (swiperRef.value) {
+        swiperRef.value.slideTo(0);
+      }
+    });
+  }
 };
+
 
 const doRefresh = async (event: any) => {
   try {
@@ -383,6 +413,52 @@ const doRefresh = async (event: any) => {
 };
 
 const getLessonNumber = (day: string, currentLessonId: string) => {
+  const isDinamicLessonNumbers = localStorage.getItem('isDinamicLessonNumbers') === 'true';
+
+  // If dynamic numbering is disabled, use fixed schedule-based numbering
+  if (!isDinamicLessonNumbers) {
+    const lesson = lessonStore.lessonsByDay[day]?.find(l => l.id === currentLessonId);
+    if (lesson && lesson.starttime) {
+      // Standard schedule times matching
+      const standardTimes = [
+        { time: '8:00', num: 1 },
+        { time: '8:55', num: 2 },
+        { time: '9:50', num: 3 },
+        { time: '10:55', num: 4 },
+        { time: '11:50', num: 5 },
+        { time: '12:45', num: 6 },
+        { time: '13:40', num: 7 },
+        { time: '14:35', num: 8 }
+      ];
+
+      // Try exact match first
+      const exactMatch = standardTimes.find(st => st.time === lesson.starttime);
+      if (exactMatch) return exactMatch.num;
+
+      // If no exact match, find the closest time
+      const [lessonHours, lessonMinutes] = lesson.starttime.split(':').map(Number);
+      const lessonTotalMinutes = lessonHours * 60 + lessonMinutes;
+
+      let closestTime = standardTimes[0];
+      let minDifference = Infinity;
+
+      for (const standardTime of standardTimes) {
+        const [stdHours, stdMinutes] = standardTime.time.split(':').map(Number);
+        const stdTotalMinutes = stdHours * 60 + stdMinutes;
+        const difference = Math.abs(lessonTotalMinutes - stdTotalMinutes);
+
+        if (difference < minDifference) {
+          minDifference = difference;
+          closestTime = standardTime;
+        }
+      }
+
+      return closestTime.num;
+    }
+    return 1; // Default if lesson not found
+  }
+
+  // Original dynamic numbering logic
   if (!lessonStore.lessonsByDay[day]) return 1;
   let count = 0;
   for (const lesson of lessonStore.lessonsByDay[day]) {
@@ -406,16 +482,33 @@ onMounted(async () => {
   getCurrentWeek();
   updateSelectedDay();
 
-  holidayStore.fetchHolidays();
+  await holidayStore.fetchHolidays();
   lessonStore.loadFromLocalStorage();
-  lessonStore.refreshLessons();
- 
- 
+  await lessonStore.refreshLessons();
+
+
   await nextTick();
 });
 </script>
 
 <style scoped>
+.room-pill {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: var(--ion-color-primary);
+  color: white;
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  border-radius: 12px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+  z-index: 1;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 .current-day {
   color: var(--ion-color-primary);
   font-weight: bold;
@@ -435,11 +528,13 @@ onMounted(async () => {
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
   transition: transform 0.2s, box-shadow 0.2s;
   cursor: pointer;
+  position: relative;
 }
 
 .lesson-item:active {
-  transform: scale(0.98);
-}
+    transform: scale(0.98);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  }
 
 .regular-lesson {
   display: flex;
@@ -464,6 +559,9 @@ onMounted(async () => {
   border-left: 4px solid var(--ion-color-success);
   background-color: rgba(var(--ion-color-success-rgb), 0.15);
   box-shadow: 0 4px 12px rgba(var(--ion-color-success-rgb), 0.3);
+}
+.current-lesson .room-pill {
+  background-color: var(--ion-color-success);
 }
 
 .time-indicator {

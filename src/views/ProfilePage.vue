@@ -14,7 +14,7 @@
               </div>
             </ion-avatar>
             <div class="user-info">
-              <h2 class="user-name">{{ userStore.displayLastName }} {{ userStore.displayFirstName }}</h2>
+              <h2 class="user-name">{{ userStore.lastName }} {{ userStore.firstName }}</h2>
               <p class="user-email">{{ userStore.email }}</p>
             </div>
           </div>
@@ -49,10 +49,17 @@
               </ion-item>
 
               <ion-item>
+                <ion-icon :icon="list" slot="start" class="item-icon"/>
+                <ion-label>Dinamikus órarend számozás</ion-label>
+                <ion-toggle slot="end" :checked="isDinamicLessonNumbers" @ionChange="toggleDinamicLessonNumber"></ion-toggle>
+              </ion-item>
+
+              <ion-item>
                 <ion-icon :icon="notificationsOutline" slot="start" class="item-icon"></ion-icon>
                 <ion-label>Értesítések engedélyezése</ion-label>
                 <ion-toggle slot="end" :checked="isNotificationsEnabled" @ionChange="toggleNotifications"></ion-toggle>
               </ion-item>
+
             </ion-list>
           </ion-card-content>
         </ion-card>
@@ -94,7 +101,7 @@ import {
   close,
   colorPalette,
   home as homeOutline,
-  image,
+  image, list,
   logOutOutline,
   moon,
   notificationsOutline,
@@ -116,6 +123,7 @@ const userStore = useUserStore();
 const router = useRouter();
 const selectedTheme = ref(localStorage.getItem('theme') || 'system');
 const defaultPage = ref(localStorage.getItem('defaultPage') || 'home');
+const isDinamicLessonNumbers = ref(localStorage.getItem('isDinamicLessonNumbers') === 'true');
 const isNotificationsEnabled = ref(localStorage.getItem('notificationsEnabled') === 'true');
 const showBreaksBetweenLessons = ref(localStorage.getItem('showBreaksBetweenLessons') === 'true');
 const profileImage = ref(localStorage.getItem('profileImage') || null);
@@ -219,6 +227,12 @@ const themeLabel = computed(() => {
 const defaultPageLabel = computed(() => {
   return defaultPage.value === 'home' ? 'Kezdőlap' : 'Órarend';
 });
+
+const toggleDinamicLessonNumber = async () => {
+  const isEnabled = !isDinamicLessonNumbers.value;
+  isDinamicLessonNumbers.value = isEnabled;
+  localStorage.setItem('isDinamicLessonNumbers', isEnabled.toString());
+}
 
 const toggleNotifications = async (event: CustomEvent) => {
   const isEnabled = event.detail.checked;
@@ -395,14 +409,19 @@ const goLogout = () => {
 
 ion-card-header {
   padding-bottom: 0;
+  
 }
 
 ion-card-title {
+  
   display: flex;
   align-items: center;
   font-size: 1.2rem;
   font-weight: 600;
 }
+
+
+
 
 .section-icon {
   margin-right: 10px;
@@ -416,7 +435,7 @@ ion-list {
 ion-item {
   --padding-start: 0;
   --inner-padding-end: 0;
-  --background: transparent;
+  --background: var(--ion-card-background);
 }
 
 .item-icon {

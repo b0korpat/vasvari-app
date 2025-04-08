@@ -108,6 +108,10 @@ onMounted(() => {
 </script>
 
 <style scoped>
+.app-menu {
+  position: fixed;
+  top: 56px;
+}
 .menu-item {
   margin: 4px 12px;
   border-radius: 10px;

@@ -64,7 +64,7 @@
                 <span class="schedule-time">{{ item.time }}</span>
               </div>
             </div>
-          </ion-segment-content>va
+          </ion-segment-content>
 
 
         </ion-segment-view>

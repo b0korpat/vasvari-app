@@ -98,6 +98,7 @@ export const useLessonStore = defineStore('lessonStore', () => {
                 subjectName: lesson.subjectName,
                 displayName: lesson.subjectShortName || lesson.subjectName,
                 room: lesson.classRoomName || 'No room',
+                shortroom: lesson.classRoomShortName || 'No room',
                 teachername: lesson.teacher,
                 date: lesson.startTime.split('T')[0],
                 studentGroupName: lesson.studentGroupName,

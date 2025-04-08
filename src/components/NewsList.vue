@@ -1,6 +1,6 @@
 <template>
-  <div>
-    <div v-if="newsStore.loading" class="news-skeleton-container page-load-animation">
+  <div class="page-load-animation">
+    <div v-if="newsStore.loading" class="news-skeleton-container">
       <div v-for="i in 5" :key="i" class="skeleton-news-card">
         <div class="skeleton-news-layout">
           <div class="skeleton-image-container">
@@ -48,7 +48,7 @@
       <ion-content class="modal-content">
         <div v-if="selectedNewsItem?.image" class="modal-image-container">
           <img :src="selectedNewsItem.image" alt="News Image" class="modal-image"/>
-          <div class="modal-close-button image-overlay">
+          <div class="modal-close-button">
             <ion-button fill="clear" @click="closeModal">
               <ion-icon slot="icon-only" :icon="arrowBack"></ion-icon>
             </ion-button>
@@ -253,9 +253,7 @@ onMounted(async () => {
   background-color: var(--ion-card-background);
 }
 
-.news-card:active {
-  transform: scale(0.98);
-}
+
 
 .news-layout {
   display: flex;
@@ -352,13 +350,17 @@ onMounted(async () => {
   z-index: 100;
 }
 
-.image-overlay {
-  background-color: rgba(0, 0, 0, 0.4);
-  border-radius: 50%;
-}
+.news-card:active {
+  transform: translateY(10px) scale(0.98);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
+  }
+
+
 
 .modal-close-button ion-button {
   --color: white;
+  border-radius: 50%;
+  background-color: rgba(0, 0, 0, 0.56);
   --padding-start: 8px;
   --padding-end: 8px;
 }
