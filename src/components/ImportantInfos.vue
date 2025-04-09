@@ -45,10 +45,9 @@
         <ion-segment-view>
           <ion-segment-content id="normal">
             <div v-for="(item, index) in normalSchedule" :key="'normal-' + index" class="schedule-item">
-              <div class="schedule-number">{{ index + 1 }}</div>
+              <div class="schedule-number">{{ index}}</div>
               <div class="schedule-details">
-                <span class="schedule-name">{{ item.name }}</span>
-                <span class="schedule-time">{{ item.time }}</span>
+                <span class="schedule-name">{{ item.time }}</span>
               </div>
             </div>
           </ion-segment-content>
@@ -57,11 +56,10 @@
               <ion-icon :icon="schoolOutline" class="schedule-icon"></ion-icon>
               <span>Hétfő és szerda</span>
             </div>
-            <div v-for="(item, index) in adultSchedule" class="schedule-item">
-              <div class="schedule-number">{{ index + 1 }}</div>
+            <div v-for="(item, index) in adultSchedule" :key="index" class="schedule-item">
+              <div class="schedule-number">{{ index }}</div>
               <div class="schedule-details">
-                <span class="schedule-name">{{ item.name }}</span>
-                <span class="schedule-time">{{ item.time }}</span>
+                <span class="schedule-name">{{ item.time }}</span>
               </div>
             </div>
           </ion-segment-content>
@@ -120,7 +118,6 @@ import {
 import {ref} from "vue";
 
 interface ScheduleItem {
-  name: string;
   time: string;
 }
 
@@ -139,24 +136,26 @@ interface DayHours {
 const selectedScheduleType = ref('normal');
 
 const normalSchedule = ref<ScheduleItem[]>([
-  {name: '1. óra', time: '8:00 - 8:45'},
-  {name: '2. óra', time: '8:55 - 9:40'},
-  {name: '3. óra', time: '9:50 - 10:35'},
-  {name: '4. óra', time: '10:55 - 11:40'},
-  {name: '5. óra', time: '11:50 - 12:35'},
-  {name: '6. óra', time: '12:45 - 13:30'},
-  {name: '7. óra', time: '13:40 - 14:25'},
-  {name: '8. óra', time: '14:35 - 15:20'}
+  {time: '7:10 - 7:55'},
+  {time: '8:00 - 8:45'},
+  {time: '8:55 - 9:40'},
+  {time: '9:50 - 10:40'},
+  {time: '10:50 - 11:35'},
+  {time: '11:45 - 12:30'},
+  {time: '12:45 - 13:30'},
+  {time: '13:40 - 14:25'},
+  {time: '14:30 - 15:15'},
+  {time: '15:20 - 16:05'},
 ]);
 
 const adultSchedule = ref<ScheduleItem[]>([
-  {name: '1. óra', time: '15:30 - 16:15'},
-  {name: '2. óra', time: '16:20 - 17:05'},
-  {name: '3. óra', time: '17:10 - 17:55'},
-  {name: '4. óra', time: '18:00 - 18:45'},
-  {name: '5. óra', time: '18:50 - 19:35'},
-  {name: '6. óra', time: '19:40 - 20:25'},
-  {name: '7. óra', time: '20:30 - 21:15'},
+  {time: '15:30 - 16:15'},
+  {time: '16:20 - 17:05'},
+  {time: '17:10 - 17:55'},
+  {time: '18:00 - 18:45'},
+  {time: '18:50 - 19:35'},
+  {time: '19:40 - 20:25'},
+  {time: '20:30 - 21:15'},
 ]);
 
 const contacts = ref<Contact[]>([
@@ -172,11 +171,11 @@ const contacts = ref<Contact[]>([
 ]);
 
 const officeHours = ref<DayHours[]>([
-  {day: 'H', hours: '9:00 - 15:00'},
-  {day: 'K', hours: '9:00 - 15:00'},
-  {day: 'Sz', hours: '9:00 - 15:00'},
-  {day: 'Cs', hours: '9:00 - 15:00'},
-  {day: 'P', hours: '9:00 - 14:00'}
+  {day: 'H', hours: '6:00 - 21:00'},
+  {day: 'K', hours: '6:00 - 18:00'},
+  {day: 'Sz', hours: '6:00 - 21:00'},
+  {day: 'Cs', hours: '9:00 - 18:00'},
+  {day: 'P', hours: '9:00 - 18:00'}
 ]);
 
 const getIconForContact = (type: string) => {
@@ -342,10 +341,6 @@ const showToast = async (message: string) => {
   color: var(--ion-text-color);
 }
 
-.schedule-time {
-  font-size: 0.8rem;
-  color: var(--ion-color-medium);
-}
 
 .contact-item {
   display: flex;

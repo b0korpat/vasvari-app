@@ -1,5 +1,5 @@
 import {useUserStore} from '@/stores/user';
-import {routeLocationKey, useRouter} from 'vue-router';
+import { useRouter} from 'vue-router';
 
 const API_BASE = 'https://backend-production-f2dd.up.railway.app/auth';
 
@@ -12,11 +12,6 @@ export const fetchUser = async () => {
     const userStore = useUserStore();
 
     try {
-        const headers: HeadersInit = {
-            'Content-Type': 'application/json'
-        };
-
-
         const response = await fetch(`${API_BASE}/me`, {
             method: 'GET',
             headers: {
@@ -67,7 +62,7 @@ export const logout = async (): Promise<boolean | null> => {
         if (!response.ok) throw new Error('Logout failed');
 
 
-        router.push('/login');
+        await router.push('/login');
         console.log('Logout successful');
         return true;
     } catch (error) {

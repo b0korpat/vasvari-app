@@ -163,7 +163,7 @@ export const useLessonStore = defineStore('lessonStore', () => {
             if (!accessToken) throw new Error('No access token');
 
             const response = await fetch(
-                `https://backend-production-f2dd.up.railway.app/api/Lesson/GetLessonsByTimeframeForStudent?startDate=${startDate}&endDate=${endDate}&studentId=${userStore.uid}`,
+                `https://backend-production-f2dd.up.railway.app/Lesson/GetLessonsByTimeframeForStudent?startDate=${startDate}&endDate=${endDate}&studentId=${userStore.uid}`,
                 {
                     method: 'GET',
                     credentials: 'include',

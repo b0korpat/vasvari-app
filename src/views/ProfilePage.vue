@@ -51,7 +51,7 @@
               <ion-item>
                 <ion-icon :icon="list" slot="start" class="item-icon"/>
                 <ion-label>Dinamikus órarend számozás</ion-label>
-                <ion-toggle slot="end" :checked="isDinamicLessonNumbers" @ionChange="toggleDinamicLessonNumber"></ion-toggle>
+                <ion-toggle slot="end" :checked="isDynamicLessonNumber" @ionChange="toggleDynamicLessonNumber"></ion-toggle>
               </ion-item>
 
               <ion-item>
@@ -123,7 +123,7 @@ const userStore = useUserStore();
 const router = useRouter();
 const selectedTheme = ref(localStorage.getItem('theme') || 'system');
 const defaultPage = ref(localStorage.getItem('defaultPage') || 'home');
-const isDinamicLessonNumbers = ref(localStorage.getItem('isDinamicLessonNumbers') === 'true');
+const isDynamicLessonNumber = ref(localStorage.getItem('isDynamicLessonNumber') === 'true');
 const isNotificationsEnabled = ref(localStorage.getItem('notificationsEnabled') === 'true');
 const showBreaksBetweenLessons = ref(localStorage.getItem('showBreaksBetweenLessons') === 'true');
 const profileImage = ref(localStorage.getItem('profileImage') || null);
@@ -228,10 +228,10 @@ const defaultPageLabel = computed(() => {
   return defaultPage.value === 'home' ? 'Kezdőlap' : 'Órarend';
 });
 
-const toggleDinamicLessonNumber = async () => {
-  const isEnabled = !isDinamicLessonNumbers.value;
-  isDinamicLessonNumbers.value = isEnabled;
-  localStorage.setItem('isDinamicLessonNumbers', isEnabled.toString());
+const toggleDynamicLessonNumber = async () => {
+  const isEnabled = !isDynamicLessonNumber.value;
+  isDynamicLessonNumber.value = isEnabled;
+  localStorage.setItem('isDynamicLessonNumber', isEnabled.toString());
 }
 
 const toggleNotifications = async (event: CustomEvent) => {

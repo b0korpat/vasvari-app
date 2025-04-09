@@ -10,7 +10,7 @@ import { onMounted } from 'vue';
 
 
 const UPDATE_CHECK_URL = "https://b0korpat.github.io/mobil_dist/update.json";
-const CURRENT_APP_VERSION = `v0.0.5`;
+const CURRENT_APP_VERSION = `v0.0.6`;
 
 onMounted(async () => {
   console.log(`App version ${CURRENT_APP_VERSION} loaded, checking for updates...`);

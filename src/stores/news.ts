@@ -56,7 +56,7 @@ export const useNewsStore = defineStore('news', () => {
 
     const userStore = useUserStore();
     try {
-      const response = await fetch('https://backend-production-f2dd.up.railway.app/api/news', {
+      const response = await fetch('https://backend-production-f2dd.up.railway.app/news', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${userStore.token}`

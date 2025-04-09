@@ -22,7 +22,7 @@ export const useHolidayStore = defineStore('holiday', () => {
   const fetchHolidays = async () => {
     const userStore = useUserStore();
     try {
-      const response = await fetch('https://backend-production-f2dd.up.railway.app/api/Break', {
+      const response = await fetch('https://backend-production-f2dd.up.railway.app/Break', {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${userStore.token}`

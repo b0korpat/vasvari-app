@@ -221,7 +221,6 @@ const swiperRef = ref<any>(null);
 const isModalOpen = ref(false);
 const selectedLesson = ref<any>(null);
 
-// Computed properties
 const filteredLessons = (day: string) => {
   return lessonStore.lessonsByDay[day]?.filter((lesson) => {
     if (lesson.name === 'Lyukasóra' || isRegularLesson(lesson)) return true;
@@ -230,7 +229,6 @@ const filteredLessons = (day: string) => {
   }) || [];
 };
 
-// Helper functions
 const formatDate = (date: Date) => {
   const year = date.getFullYear();
   const month = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -375,23 +373,18 @@ const onSlideChange = (swiper: any) => {
   const previousIndex = selectedDayIndex.value;
   const newIndex = swiper.activeIndex;
 
-  // Update the selected day index
   selectedDayIndex.value = newIndex;
 
-  // Check if we swiped from Monday to Sunday (left swipe on Monday)
   if (previousIndex === 0 && newIndex === 6) {
     prevWeek();
-    // After changing week, move to Sunday of the new week
     nextTick(() => {
       if (swiperRef.value) {
         swiperRef.value.slideTo(6);
       }
     });
   }
-  // Check if we swiped from Sunday to Monday (right swipe on Sunday)
   else if (previousIndex === 6 && newIndex === 0) {
     nextWeek();
-    // After changing week, move to Monday of the new week
     nextTick(() => {
       if (swiperRef.value) {
         swiperRef.value.slideTo(0);
@@ -413,29 +406,28 @@ const doRefresh = async (event: any) => {
 };
 
 const getLessonNumber = (day: string, currentLessonId: string) => {
-  const isDinamicLessonNumbers = localStorage.getItem('isDinamicLessonNumbers') === 'true';
+  const isDinamicLessonNumbers = localStorage.getItem('isDynamicLessonNumber') === 'true';
 
-  // If dynamic numbering is disabled, use fixed schedule-based numbering
   if (!isDinamicLessonNumbers) {
     const lesson = lessonStore.lessonsByDay[day]?.find(l => l.id === currentLessonId);
     if (lesson && lesson.starttime) {
-      // Standard schedule times matching
       const standardTimes = [
+        { time: '7:10', num: 0 },
         { time: '8:00', num: 1 },
         { time: '8:55', num: 2 },
-        { time: '9:50', num: 3 },
-        { time: '10:55', num: 4 },
-        { time: '11:50', num: 5 },
+        { time: '9:55', num: 3 },
+        { time: '10:50', num: 4 },
+        { time: '11:45', num: 5 },
         { time: '12:45', num: 6 },
         { time: '13:40', num: 7 },
-        { time: '14:35', num: 8 }
+        { time: '14:30', num: 8 },
+        { time: '15:20', num: 9 },
       ];
 
-      // Try exact match first
+
       const exactMatch = standardTimes.find(st => st.time === lesson.starttime);
       if (exactMatch) return exactMatch.num;
 
-      // If no exact match, find the closest time
       const [lessonHours, lessonMinutes] = lesson.starttime.split(':').map(Number);
       const lessonTotalMinutes = lessonHours * 60 + lessonMinutes;
 
@@ -455,10 +447,9 @@ const getLessonNumber = (day: string, currentLessonId: string) => {
 
       return closestTime.num;
     }
-    return 1; // Default if lesson not found
+    return 1;
   }
 
-  // Original dynamic numbering logic
   if (!lessonStore.lessonsByDay[day]) return 1;
   let count = 0;
   for (const lesson of lessonStore.lessonsByDay[day]) {
@@ -477,7 +468,6 @@ const openLessonDetails = (lesson: any) => {
   isModalOpen.value = true;
 };
 
-// Lifecycle hooks
 onMounted(async () => {
   getCurrentWeek();
   updateSelectedDay();
