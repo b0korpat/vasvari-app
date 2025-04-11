@@ -1,7 +1,7 @@
 import {useUserStore} from '@/stores/user';
-import { useRouter} from 'vue-router';
 
-const API_BASE = 'https://backend-production-f2dd.up.railway.app/auth';
+
+const API_BASE = 'https://api.vasvariapp.hu/auth';
 
 const handleError = (error: unknown, context: string): null => {
     console.error(`Error ${context}:`, error);
@@ -16,8 +16,8 @@ export const fetchUser = async () => {
             method: 'GET',
             headers: {
                 "Content-Type": "application/json",
-                'Authorization': `Bearer ${userStore.token}`
             },
+            credentials: 'include'
         });
 
         if (!response.ok) throw new Error('Failed to fetch user data');
@@ -25,20 +25,14 @@ export const fetchUser = async () => {
         const data = await response.json();
         if (!data?.claims || !data.email) throw new Error('Invalid user data');
 
+        userStore.isAuthenticated = true;
         // Set user data
         userStore.setUser({
             firstName: data.claims.firstName,
             lastName: data.claims.lastName,
             email: data.email,
+            uid: data.uid,
         });
-
-        // Save new token if provided
-        if (data.token && data.uid) {
-            userStore.setAuthData({
-                uid: data.uid,
-                token: data.token
-            });
-        }
 
         return data;
     } catch (error) {
@@ -46,27 +40,33 @@ export const fetchUser = async () => {
     }
 };
 
-export const logout = async (): Promise<boolean | null> => {
+export const logout =  async () => {
     const userStore = useUserStore();
-    const router = useRouter();
 
     try {
         const response = await fetch(`${API_BASE}/logout`, {
             method: 'POST',
             headers: {
                 "Content-Type": "application/json",
-                'Authorization': `Bearer ${userStore.token}`
             },
+            credentials: 'include',
         });
 
         if (!response.ok) throw new Error('Logout failed');
 
+        userStore.clearUser();
+        userStore.isAuthenticated = false;
 
-        await router.push('/login');
+
+        document.cookie.split(';').forEach(cookie => {
+            const eqPos = cookie.indexOf('=');
+            const name = eqPos > -1 ? cookie.slice(0, eqPos) : cookie;
+            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
+        });
         console.log('Logout successful');
+        location.reload();
         return true;
     } catch (error) {
-        userStore.clearUser();
         return handleError(error, 'during logout');
     }
 };

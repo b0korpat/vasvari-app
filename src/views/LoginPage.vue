@@ -10,51 +10,71 @@
 
         <form class="login-form" @submit.prevent="login">
           <ion-item class="input-item">
-            <ion-icon slot="start" :icon="mailOutline" class="input-icon"></ion-icon>
+            <ion-icon
+              slot="start"
+              :icon="mailOutline"
+              class="input-icon"
+            ></ion-icon>
             <ion-input
-                v-model="email"
-                label="Email"
-                label-placement="floating"
-                placeholder="email@domain.com"
-                type="email"
-                @input="validateEmailField"
-                required
+              v-model="email"
+              label="Email"
+              label-placement="floating"
+              placeholder="email@domain.com"
+              type="email"
+              @input="validateEmailField"
+              required
             />
           </ion-item>
           <transition name="fade">
             <div v-if="errorMessage.email" class="error-message">
-              <ion-icon :icon="alertCircleOutline" class="error-icon"></ion-icon>
+              <ion-icon
+                :icon="alertCircleOutline"
+                class="error-icon"
+              ></ion-icon>
               {{ errorMessage.email }}
             </div>
           </transition>
 
           <ion-item class="input-item">
-            <ion-icon slot="start" :icon="lockClosed" class="input-icon"></ion-icon>
+            <ion-icon
+              slot="start"
+              :icon="lockClosed"
+              class="input-icon"
+            ></ion-icon>
             <ion-input
-                v-model="password"
-                label="Jelszó"
-                label-placement="floating"
-                placeholder="Jelszó"
-                :type="passwordVisible ? 'text' : 'password'"
-                @input="validatePasswordField"
-                required
+              v-model="password"
+              label="Jelszó"
+              label-placement="floating"
+              placeholder="Jelszó"
+              :type="passwordVisible ? 'text' : 'password'"
+              @input="validatePasswordField"
+              required
             >
             </ion-input>
             <ion-button
-                slot="end"
-                fill="clear"
-                @click="togglePasswordVisibility">
+              slot="end"
+              fill="clear"
+              @click="togglePasswordVisibility"
+            >
               <ion-icon :icon="passwordVisible ? eyeOff : eye"></ion-icon>
             </ion-button>
           </ion-item>
           <transition name="fade">
             <div v-if="errorMessage.password" class="error-message">
-              <ion-icon :icon="alertCircleOutline" class="error-icon"></ion-icon>
+              <ion-icon
+                :icon="alertCircleOutline"
+                class="error-icon"
+              ></ion-icon>
               {{ errorMessage.password }}
             </div>
           </transition>
 
-          <ion-button expand="block" type="submit" :disabled="isLoading" class="login-btn">
+          <ion-button
+            expand="block"
+            type="submit"
+            :disabled="isLoading"
+            class="login-btn"
+          >
             <template v-if="!isLoading">Bejelentkezés</template>
             <ion-spinner v-else name="crescent"></ion-spinner>
           </ion-button>
@@ -71,23 +91,35 @@
 </template>
 
 <script lang="ts" setup>
-import { ref } from 'vue';
-import { useRouter } from 'vue-router';
-import { IonButton, IonContent, IonIcon, IonInput, IonItem, IonPage, IonSpinner } from '@ionic/vue';
-import { alertCircleOutline, lockClosed, mailOutline, eye, eyeOff } from 'ionicons/icons';
-import { setupPushNotifications } from '@/components/setupPushNotifications';
+import { ref } from "vue";
+import { useRouter } from "vue-router";
+import {
+  IonButton,
+  IonContent,
+  IonIcon,
+  IonInput,
+  IonItem,
+  IonPage,
+  IonSpinner,
+} from "@ionic/vue";
+import {
+  alertCircleOutline,
+  lockClosed,
+  mailOutline,
+  eye,
+  eyeOff,
+} from "ionicons/icons";
+import { setupPushNotifications } from "@/components/setupPushNotifications";
 import { fetchUser } from "@/components/AuthFunctions";
-import { toastController } from '@ionic/vue';
-import {useUserStore} from "@/stores/user";
-
+import { toastController } from "@ionic/vue";
 
 const isLoading = ref(false);
-const email = ref('');
-const password = ref('');
+const email = ref("");
+const password = ref("");
 
 const errorMessage = ref({
-  email: '',
-  password: '',
+  email: "",
+  password: "",
 });
 
 const router = useRouter();
@@ -105,22 +137,21 @@ const validateEmail = (email: string) => {
 
 const validateEmailField = () => {
   if (!email.value) {
-    errorMessage.value.email = 'Az email mező kitöltése kötelező';
+    errorMessage.value.email = "Az email mező kitöltése kötelező";
   } else if (!validateEmail(email.value)) {
-    errorMessage.value.email = 'Érvénytelen email formátum';
+    errorMessage.value.email = "Érvénytelen email formátum";
   } else {
-    errorMessage.value.email = '';
+    errorMessage.value.email = "";
   }
 };
 
 const validatePasswordField = () => {
   if (!password.value) {
-    errorMessage.value.password = 'A jelszó mező kitöltése kötelező';
+    errorMessage.value.password = "A jelszó mező kitöltése kötelező";
   } else {
-    errorMessage.value.password = '';
+    errorMessage.value.password = "";
   }
 };
-
 
 const login = async () => {
   validateEmailField();
@@ -131,50 +162,46 @@ const login = async () => {
   }
 
   isLoading.value = true;
-  const userStore = useUserStore();
 
   try {
-    const response = await fetch('https://backend-production-f2dd.up.railway.app/auth/login', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        email: email.value,
-        password: password.value,
-      }),
-    });
+    const response = await fetch(
+        "https://api.vasvariapp.hu/auth/login",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          credentials: "include",
+          body: JSON.stringify({
+            email: email.value,
+            password: password.value,
+          }),
+        }
+    );
 
     const data = await response.json();
     if (response.ok) {
-      console.log('Sikeres bejelentkezés:', data);
-
-      // Save authentication data
-      if (data.uid && data.token) {
-        userStore.setAuthData({
-          uid: data.uid,
-          token: data.token
-        });
-      }
+      console.log("Sikeres bejelentkezés:", data);
 
       try {
         await setupPushNotifications();
       } catch (error) {
-        console.error('Error setting up notifications:', error);
+        console.error("Error setting up notifications:", error);
       }
       await fetchUser();
-      await router.push('/tabs/home');
+      await router.push("/tabs/home");
     } else {
-      console.error('Sikertelen bejelentkezés:', data);
-      errorMessage.value.password = 'Hibás email cím vagy jelszó';
+      console.error("Sikertelen bejelentkezés:", data);
+      errorMessage.value.password = "Hibás email cím vagy jelszó";
     }
   } catch (error) {
-    console.error('Network error:', error);
+    console.error("Network error:", error);
     const toast = await toastController.create({
-      message: 'Hiba történt a bejelentkezés során. Ellenőrizd az internetkapcsolatot.',
+      message:
+          "Hiba történt a bejelentkezés során. Ellenőrizd az internetkapcsolatot.",
       duration: 3000,
-      position: 'bottom',
-      color: 'danger'
+      position: "bottom",
+      color: "danger",
     });
     await toast.present();
   } finally {
@@ -185,41 +212,45 @@ const login = async () => {
 const sendPasswordResetEmail = async () => {
   isLoading.value = true;
   try {
-    const response = await fetch('https://backend-production-f2dd.up.railway.app/Auth/forgotpassword', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        email: email.value
-      })
-    });
+    const response = await fetch(
+      "https://api.vasvariapp.hu/Auth/forgotpassword",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          email: email.value,
+        }),
+      }
+    );
 
     if (response.ok) {
       const toast = await toastController.create({
-        message: 'Jelszó helyreállítás elküldve, nézd meg az emaileidet',
+        message: "Jelszó helyreállítás elküldve, nézd meg az emaileidet",
         duration: 3000,
-        position: 'bottom',
-        color: 'success',
+        position: "bottom",
+        color: "success",
       });
       await toast.present();
     } else {
       const errorData = await response.json();
       const toast = await toastController.create({
-        message: errorData.message || 'Sikertelen jelszó helyreállítás',
+        message: errorData.message || "Sikertelen jelszó helyreállítás",
         duration: 3000,
-        position: 'bottom',
-        color: 'danger',
+        position: "bottom",
+        color: "danger",
       });
       await toast.present();
     }
   } catch (error) {
-    console.error('Error:', error);
+    console.error("Error:", error);
     const toast = await toastController.create({
-      message: 'Hiba történt a kérés során',
+      message: "Hiba történt a kérés során",
       duration: 3000,
-      position: 'bottom',
-      color: 'danger',
+      position: "bottom",
+      color: "danger",
     });
     await toast.present();
   } finally {
@@ -229,9 +260,9 @@ const sendPasswordResetEmail = async () => {
 
 const forgotPassword = () => {
   if (!email.value) {
-    errorMessage.value.email = 'Kérlek add meg az emailcímed';
+    errorMessage.value.email = "Kérlek add meg az emailcímed";
   } else if (!validateEmail(email.value)) {
-    errorMessage.value.email = 'Érvénytelen email formátum';
+    errorMessage.value.email = "Érvénytelen email formátum";
   } else {
     sendPasswordResetEmail();
   }
@@ -276,7 +307,7 @@ const forgotPassword = () => {
   --border-radius: 12px;
   --border-color: transparent;
   --background: var(--ion-card-background, transparent);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0);
   margin-bottom: 12px;
 }
 

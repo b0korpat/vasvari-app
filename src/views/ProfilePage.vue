@@ -291,28 +291,14 @@ const changeDefaultPage = (page: string) => {
   }
 };
 
-const goLogout = () => {
-  logout();
-
-  userStore.clearUser();
-
-  localStorage.clear();
-
-  // Clear sessionStorage
-  sessionStorage.clear();
-
-  // Clear cookies
-  document.cookie.split(';').forEach(cookie => {
-    const eqPos = cookie.indexOf('=');
-    const name = eqPos > -1 ? cookie.slice(0, eqPos) : cookie;
-    document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
-  });
-  location.reload();
-  router.push('/login');
+const goLogout = async () => {
+  await logout();
 };
 </script>
 
 <style scoped>
+
+
 .page-content {
   padding: 16px;
   display: flex;
@@ -409,11 +395,11 @@ const goLogout = () => {
 
 ion-card-header {
   padding-bottom: 0;
-  
+
 }
 
 ion-card-title {
-  
+
   display: flex;
   align-items: center;
   font-size: 1.2rem;

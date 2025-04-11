@@ -67,7 +67,7 @@ function getDefaultRoute() {
 router.beforeEach((to, from, next) => {
     const userStore = useUserStore();
     // If not logged in, redirect to /login
-    if (!userStore.token && to.path !== '/login') {
+    if (!userStore.isAuthenticated && to.path !== '/login') {
       next('/login');
     } else {
       next();

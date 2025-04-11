@@ -37,9 +37,14 @@
         <swiper
             :initial-slide="selectedDayIndex"
             :slides-per-view="1"
-            :resistance-ratio="0"
+            :resistance-ratio="0.5"
             @slideChange="onSlideChange"
             @swiper="onSwiperInit"
+            :touchReleaseOnEdges="true"
+            :resistance="true"
+            :edgeSwipeDetection="true"
+            :edgeSwipeThreshold="30"
+            :watchSlidesProgress="true"
         >
           <swiper-slide v-for="day in daysOfWeek" :key="day">
             <ion-content class="lessons-container">
@@ -47,7 +52,7 @@
                 <ion-refresher-content />
               </ion-refresher>
 
-              <div v-if="lessonStore.loading" class="lessons-skeleton-container">
+              <div v-if="showSkeletonForDay(day)" class="lessons-skeleton-container">
                 <div v-for="i in 6" :key="i" class="skeleton-lesson-item">
                   <div class="skeleton-time">
                     <div class="skeleton-number pulse"></div>
@@ -61,53 +66,59 @@
                 </div>
               </div>
 
-              <ion-card v-else-if="isHoliday(day)" class="holiday-card">
-                <ion-card-header>
-                  <ion-card-title>
-                    <ion-icon :icon="sunnyOutline"></ion-icon>
-                    Szünet
-                  </ion-card-title>
-                </ion-card-header>
-                <ion-card-content>
-                  {{ getHolidayName(day) }}
-                </ion-card-content>
-              </ion-card>
+              <template v-else>
+                <transition name="fade" mode="out-in">
+                  <ion-card v-if="isHoliday(day)" class="holiday-card" :key="'holiday-' + day">
+                    <ion-card-header>
+                      <ion-card-title>
+                        <ion-icon :icon="sunnyOutline"></ion-icon>
+                        Szünet
+                      </ion-card-title>
+                    </ion-card-header>
+                    <ion-card-content>
+                      {{ getHolidayName(day) }}
+                    </ion-card-content>
+                  </ion-card>
 
-              <div v-else-if="!filteredLessons(day).length" class="no-lessons">
-                <ion-icon :icon="calendarOutline" class="no-lessons-icon"></ion-icon>
-                <p>Nincsenek órák ezen a napon</p>
-              </div>
-
-              <div v-else class="lessons-list">
-                <div
-                  v-for="lesson in filteredLessons(day)"
-                  :key="lesson.id"
-                  :class="['lesson-item', getLessonClass(lesson), { 'current-lesson': isCurrentLesson(lesson, day) }]"
-                  @click="openLessonDetails(lesson)"
-              >
-                <div v-if="isRegularLesson(lesson)" class="room-pill" v-show="lesson.room">
-                  {{ lesson.shortroom }}
-                </div>
-
-                <div v-if="isRegularLesson(lesson)" class="time-indicator">
-                  <div class="lesson-number">{{ getLessonNumber(day, lesson.id) }}</div>
-                  <div class="lesson-time">
-                    <span>{{ lesson.starttime }}</span>
-                    <span>{{ lesson.endtime }}</span>
+                  <div v-else-if="!filteredLessons(day).length" class="no-lessons" :key="'no-lessons-' + day">
+                    <ion-icon :icon="calendarOutline" class="no-lessons-icon"></ion-icon>
+                    <p>Nincsenek órák ezen a napon</p>
                   </div>
-                </div>
 
-                <div v-if="isRegularLesson(lesson)" class="lesson-content">
-                  <div class="lesson-name">{{ lesson.displayName }}</div>
-                  <div v-if="lesson.teachername" class="lesson-teacher">{{ lesson.teachername }}</div>
-                </div>
+                  <div v-else :key="'lessons-' + day">
+                    <transition-group name="list-anim" tag="div" class="lessons-list" appear>
+                      <div
+                          v-for="(lesson, index) in filteredLessons(day)"
+                          :key="lesson.id"
+                          :class="['lesson-item', getLessonClass(lesson), { 'current-lesson': isCurrentLesson(lesson, day) }]"
+                          @click="openLessonDetails(lesson)"
+                          :style="{ '--i': index }" >
+                        <div v-if="isRegularLesson(lesson)" class="room-pill" v-show="lesson.shortroom">
+                          {{ lesson.shortroom }}
+                        </div>
 
-                <div v-else class="break-content">
-                  <ion-icon :icon="timeOutline" class="break-icon"></ion-icon>
-                  <div>{{ lesson.name }}</div>
-                </div>
-              </div>
-              </div>
+                        <div v-if="isRegularLesson(lesson)" class="time-indicator">
+                          <div class="lesson-number">{{ getLessonNumber(day, lesson.id) }}</div>
+                          <div class="lesson-time">
+                            <span>{{ lesson.starttime }}</span>
+                            <span>{{ lesson.endtime }}</span>
+                          </div>
+                        </div>
+
+                        <div v-if="isRegularLesson(lesson)" class="lesson-content">
+                          <div class="lesson-name">{{ lesson.displayName }}</div>
+                          <div v-if="lesson.teachername" class="lesson-teacher">{{ lesson.teachername }}</div>
+                        </div>
+
+                        <div v-else class="break-content">
+                          <ion-icon :icon="timeOutline" class="break-icon"></ion-icon>
+                          <div>{{ lesson.name }}</div>
+                        </div>
+                      </div>
+                    </transition-group>
+                  </div>
+                </transition>
+              </template>
             </ion-content>
           </swiper-slide>
         </swiper>
@@ -129,7 +140,6 @@
               </ion-button>
             </ion-buttons>
           </div>
-
           <h1 class="subject-title">{{ selectedLesson?.subjectName }}</h1>
         </div>
 
@@ -191,7 +201,7 @@ import {
   IonRefresher,
   IonRefresherContent
 } from '@ionic/vue';
-import { onMounted, ref, nextTick } from 'vue';
+import { onMounted, ref, nextTick, computed } from 'vue';
 import { Swiper, SwiperSlide } from 'swiper/vue';
 import 'swiper/swiper-bundle.css';
 import {
@@ -220,11 +230,179 @@ const selectedDayIndex = ref(0);
 const swiperRef = ref<any>(null);
 const isModalOpen = ref(false);
 const selectedLesson = ref<any>(null);
+const initialLoadComplete = ref(false);
+
+const isSwiping = ref(false);
+const touchStartX = ref(0);
+const edgeSwipeThreshold = 50; // pixels threshold for edge swipe detection
+
+const isSwipingToChangeWeek = ref(false);
+
+const onTouchEnd = (swiper: any, event: TouchEvent) => {
+  if (!isSwiping.value) return;
+  isSwiping.value = false;
+
+  const touchEndX = event.changedTouches[0].clientX;
+  const deltaX = touchEndX - touchStartX.value;
+
+  // Check if we're at the edge and swiped past threshold
+  if (swiper.isBeginning && deltaX > edgeSwipeThreshold) {
+    isSwipingToChangeWeek.value = true;
+    prevWeek();
+  } else if (swiper.isEnd && deltaX < -edgeSwipeThreshold) {
+    isSwipingToChangeWeek.value = true;
+    nextWeek();
+  }
+};
+
+const onSlideChange = (swiper: any) => {
+  // Ignore slide changes triggered by week changes
+  if (isSwipingToChangeWeek.value) {
+    isSwipingToChangeWeek.value = false;
+    return;
+  }
+
+  const newIndex = swiper.activeIndex;
+
+  // Only update if the index actually changed
+  if (selectedDayIndex.value !== newIndex) {
+    selectedDayIndex.value = newIndex;
+  }
+};
+
+const goToSlide = (index: number) => {
+  if (selectedDayIndex.value !== index) {
+    selectedDayIndex.value = index;
+    if (swiperRef.value) {
+      swiperRef.value.slideTo(index); // Slide to the selected day
+    }
+  }
+};
+
+const prevWeek = () => {
+  const [startStr, endStr] = currentWeek.value.split(' - ');
+  const start = new Date(startStr.replace(/\./g, '-'));
+  const end = new Date(endStr.replace(/\./g, '-'));
+  start.setDate(start.getDate() - 7);
+  end.setDate(end.getDate() - 7);
+
+  updateWeekAndDays(start, end);
+
+  // After changing week, move to the last day (Sunday)
+  selectedDayIndex.value = 6; // Go to Sunday (index 6)
+
+  fetchLessonsForCurrentWeek(start, end);
+
+  // Ensure swiper updates AFTER data might start loading and DOM updates
+  nextTick(() => {
+    if (swiperRef.value) {
+      swiperRef.value.slideTo(6, 0); // Immediately jump to last slide without animation
+    }
+  });
+};
+
+
+const nextWeek = () => {
+  const [startStr, endStr] = currentWeek.value.split(' - ');
+  const start = new Date(startStr.replace(/\./g, '-'));
+  const end = new Date(endStr.replace(/\./g, '-'));
+  start.setDate(start.getDate() + 7);
+  end.setDate(end.getDate() + 7);
+
+  updateWeekAndDays(start, end);
+
+  // After changing week, move to the first day (Monday)
+  selectedDayIndex.value = 0; // Go to Monday (index 0)
+
+  fetchLessonsForCurrentWeek(start, end);
+
+  // Ensure swiper updates
+  nextTick(() => {
+    if (swiperRef.value) {
+      swiperRef.value.slideTo(0, 0); // Immediately jump to first slide without animation
+    }
+  });
+};
+
+
+const updateWeekAndDays = (start: Date, end: Date) => {
+  currentWeek.value = `${formatDate(start)} - ${formatDate(end)}`;
+  daysOfWeek.value = Array.from({ length: 7 }, (_, i) => {
+    const day = new Date(start);
+    day.setDate(start.getDate() + i);
+    return formatDate(day);
+  });
+};
+
+const fetchLessonsForCurrentWeek = (start: Date, end: Date) => {
+  const startISO = start.toISOString().split('T')[0];
+  const endISO = end.toISOString().split('T')[0];
+  const hasLessonsForWeek = daysOfWeek.value.some((day) => lessonStore.lessonsByDay[day]);
+
+  lessonStore.refreshLessons(
+      startISO,
+      endISO,
+      !hasLessonsForWeek // Show loading only if no data exists for the week
+  );
+};
+
+
+// Improved updateSelectedDay function
+const updateSelectedDay = () => {
+  const today = formatDate(new Date());
+  const todayIndex = daysOfWeek.value.findIndex((day) => day === today);
+
+  let targetIndex = 0; // Default to Monday
+  if (todayIndex !== -1) {
+    targetIndex = todayIndex; // Go to today if it's in the current week
+  }
+
+  // Only update if the index is different or swiper needs initialization
+  if (selectedDayIndex.value !== targetIndex || !swiperRef.value?.initialized) {
+    selectedDayIndex.value = targetIndex;
+    if (swiperRef.value) {
+      swiperRef.value.slideTo(targetIndex, 0); // Go without animation initially
+    }
+  }
+};
+
+
+
+const onSwiperInit = (swiperInstance: any) => {
+  swiperRef.value = swiperInstance;
+
+  // Add touch start event listener
+  swiperInstance.el.addEventListener('touchstart', (e: TouchEvent) => {
+    touchStartX.value = e.touches[0].clientX;
+    isSwiping.value = true;
+  });
+
+  // Add touch end event listener
+  swiperInstance.el.addEventListener('touchend', (e: TouchEvent) => {
+    onTouchEnd(swiperInstance, e);
+  });
+
+  // Set initial slide after swiper is ready
+  updateSelectedDay();
+};
+
+
+const hasCachedDataForWeek = computed(() => {
+  return daysOfWeek.value.some(day => lessonStore.lessonsByDay[day]?.length > 0);
+});
+
+const showSkeletonForDay = (day: string) => {
+  // Show skeleton if loading AND there's no data (either cached or freshly fetched) for the day
+  return lessonStore.loading && (!lessonStore.lessonsByDay[day] || lessonStore.lessonsByDay[day]?.length === 0);
+};
 
 const filteredLessons = (day: string) => {
   return lessonStore.lessonsByDay[day]?.filter((lesson) => {
-    if (lesson.name === 'Lyukasóra' || isRegularLesson(lesson)) return true;
+    // Always show regular lessons and Lyukasóra
+    if (isRegularLesson(lesson) || lesson.name === 'Lyukasóra') return true;
+    // Show breaks only if the setting is enabled
     if (lesson.name?.startsWith('Szünet')) return showBreaksBetweenLessons.value;
+    // Hide other types if any exist
     return false;
   }) || [];
 };
@@ -243,12 +421,8 @@ const getDayAbbreviation = (day: number) => {
 
 const isCurrentDay = (day: string) => {
   const today = new Date();
-  const targetDate = new Date(day.replace(/\./g, '-'));
-  return (
-      today.getDate() === targetDate.getDate() &&
-      today.getMonth() === targetDate.getMonth() &&
-      today.getFullYear() === targetDate.getFullYear()
-  );
+  // Compare only year, month, and day, ignoring time
+  return formatDate(today) === day;
 };
 
 const isRegularLesson = (lesson: any) => {
@@ -261,28 +435,54 @@ const getLessonClass = (lesson: any) => {
   return 'regular-lesson';
 };
 
-const isCurrentLesson = (lesson: any, day: string) => {
-  if (!isRegularLesson(lesson) || !isCurrentDay(day)) return false;
+const isCurrentLesson = (lesson: any, day: string | undefined) => {
+  if (!lesson || !day || !isRegularLesson(lesson) || !isCurrentDay(day)) return false;
 
-  const now = new Date();
-  const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
-  return lesson.starttime <= currentTime && currentTime <= lesson.endtime;
+  try {
+    const now = new Date();
+    const lessonStartStr = `${day.replace(/\./g, '-')}T${lesson.starttime}:00`;
+    const lessonEndStr = `${day.replace(/\./g, '-')}T${lesson.endtime}:00`;
+
+    const lessonStartDate = new Date(lessonStartStr);
+    const lessonEndDate = new Date(lessonEndStr);
+
+    // Basic check if dates are valid
+    if (isNaN(lessonStartDate.getTime()) || isNaN(lessonEndDate.getTime())) {
+      console.error("Invalid date created for lesson:", lesson);
+      return false;
+    }
+
+    return now >= lessonStartDate && now <= lessonEndDate;
+
+  } catch (e) {
+    console.error("Error parsing lesson time:", e, lesson, day);
+    return false;
+  }
 };
+
 
 const isHoliday = (day: string) => {
   const dayDate = new Date(day.replace(/\./g, '-'));
+  // Set time to midday to avoid timezone issues with date comparisons
+  dayDate.setHours(12, 0, 0, 0);
   return holidayStore.holidays.some((holiday) => {
     const startDate = new Date(holiday.holiday_date);
     const endDate = new Date(holiday.end_date);
+    // Set time to avoid timezone issues
+    startDate.setHours(0, 0, 0, 0);
+    endDate.setHours(23, 59, 59, 999);
     return dayDate >= startDate && dayDate <= endDate;
   });
 };
 
 const getHolidayName = (day: string) => {
   const dayDate = new Date(day.replace(/\./g, '-'));
+  dayDate.setHours(12, 0, 0, 0); // Avoid timezone issues
   const holiday = holidayStore.holidays.find((h) => {
     const startDate = new Date(h.holiday_date);
     const endDate = new Date(h.end_date);
+    startDate.setHours(0, 0, 0, 0);
+    endDate.setHours(23, 59, 59, 999);
     return dayDate >= startDate && dayDate <= endDate;
   });
   return holiday ? holiday.holiday_name : 'Iskolai szünet';
@@ -290,120 +490,38 @@ const getHolidayName = (day: string) => {
 
 const getCurrentWeek = () => {
   const now = new Date();
-  const dayOfWeek = now.getDay();
+  const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, ...
   const monday = new Date(now);
-  monday.setDate(now.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1));
+  // Adjust to get Monday: If Sunday (0), go back 6 days. Otherwise, go back (dayOfWeek - 1) days.
+  monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
   const sunday = new Date(monday);
   sunday.setDate(monday.getDate() + 6);
 
-  currentWeek.value = `${formatDate(monday)} - ${formatDate(sunday)}`;
-  daysOfWeek.value = Array.from({ length: 7 }, (_, i) => {
-    const day = new Date(monday);
-    day.setDate(monday.getDate() + i);
-    return formatDate(day);
-  });
-};
-
-const prevWeek = () => {
-  const [start, end] = currentWeek.value.split(' - ').map((date) => new Date(date.replace(/\./g, '-')));
-  start.setDate(start.getDate() - 7);
-  end.setDate(end.getDate() - 7);
-  currentWeek.value = `${formatDate(start)} - ${formatDate(end)}`;
-  daysOfWeek.value = Array.from({ length: 7 }, (_, i) => {
-    const day = new Date(start);
-    day.setDate(start.getDate() + i);
-    return formatDate(day);
-  });
-  updateSelectedDay();
-
-  const hasLessonsForWeek = daysOfWeek.value.some((day) => lessonStore.lessonsByDay[day]);
-  if (!hasLessonsForWeek) {
-    lessonStore.fetchLessons(
-        start.toISOString().split('T')[0],
-        end.toISOString().split('T')[0],
-        true
-    );
-  }
-};
-
-const nextWeek = () => {
-  const [start, end] = currentWeek.value.split(' - ').map((date) => new Date(date.replace(/\./g, '-')));
-  start.setDate(start.getDate() + 7);
-  end.setDate(end.getDate() + 7);
-  currentWeek.value = `${formatDate(start)} - ${formatDate(end)}`;
-  daysOfWeek.value = Array.from({ length: 7 }, (_, i) => {
-    const day = new Date(start);
-    day.setDate(start.getDate() + i);
-    return formatDate(day);
-  });
-  updateSelectedDay();
-
-  const hasLessonsForWeek = daysOfWeek.value.some((day) => lessonStore.lessonsByDay[day]);
-  if (!hasLessonsForWeek) {
-    lessonStore.fetchLessons(
-        start.toISOString().split('T')[0],
-        end.toISOString().split('T')[0],
-        true
-    );
-  }
-};
-
-const updateSelectedDay = () => {
-  const today = formatDate(new Date());
-  const todayIndex = daysOfWeek.value.findIndex((day) => day === today);
-  selectedDayIndex.value = todayIndex !== -1 ? todayIndex : 0;
-
-  if (swiperRef.value) {
-    swiperRef.value.slideTo(selectedDayIndex.value);
-  }
-};
-
-const onSwiperInit = (swiperInstance: any) => {
-  swiperRef.value = swiperInstance;
-};
-
-const goToSlide = (index: number) => {
-  if (swiperRef.value) {
-    swiperRef.value.slideTo(index);
-    selectedDayIndex.value = index;
-  }
-};
-
-const onSlideChange = (swiper: any) => {
-  const previousIndex = selectedDayIndex.value;
-  const newIndex = swiper.activeIndex;
-
-  selectedDayIndex.value = newIndex;
-
-  if (previousIndex === 0 && newIndex === 6) {
-    prevWeek();
-    nextTick(() => {
-      if (swiperRef.value) {
-        swiperRef.value.slideTo(6);
-      }
-    });
-  }
-  else if (previousIndex === 6 && newIndex === 0) {
-    nextWeek();
-    nextTick(() => {
-      if (swiperRef.value) {
-        swiperRef.value.slideTo(0);
-      }
-    });
-  }
+  updateWeekAndDays(monday, sunday);
 };
 
 
 const doRefresh = async (event: any) => {
   try {
-    const [start, end] = currentWeek.value.split(' - ').map((date) => date.replace(/\./g, '-'));
-    await lessonStore.refreshLessons(start, end);
+    const [startStr, endStr] = currentWeek.value.split(' - ');
+    const start = new Date(startStr.replace(/\./g, '-'));
+    const end = new Date(endStr.replace(/\./g, '-'));
+    const startISO = start.toISOString().split('T')[0];
+    const endISO = end.toISOString().split('T')[0];
+    // Force refresh showing loading indicator
+    await lessonStore.refreshLessons(startISO, endISO, true);
+    // Optionally refresh holidays too if needed
+    await holidayStore.fetchHolidays();
   } catch (error) {
     console.error('Error during refresh:', error);
+    // Handle error display to user if necessary
   } finally {
-    event.target.complete();
+    if (event && event.target && typeof event.target.complete === 'function') {
+      event.target.complete();
+    }
   }
 };
+
 
 const getLessonNumber = (day: string, currentLessonId: string) => {
   const isDinamicLessonNumbers = localStorage.getItem('isDynamicLessonNumber') === 'true';
@@ -411,145 +529,184 @@ const getLessonNumber = (day: string, currentLessonId: string) => {
   if (!isDinamicLessonNumbers) {
     const lesson = lessonStore.lessonsByDay[day]?.find(l => l.id === currentLessonId);
     if (lesson && lesson.starttime) {
-      const standardTimes = [
-        { time: '7:10', num: 0 },
-        { time: '8:00', num: 1 },
-        { time: '8:55', num: 2 },
-        { time: '9:55', num: 3 },
-        { time: '10:50', num: 4 },
-        { time: '11:45', num: 5 },
-        { time: '12:45', num: 6 },
-        { time: '13:40', num: 7 },
-        { time: '14:30', num: 8 },
-        { time: '15:20', num: 9 },
-      ];
-
-
-      const exactMatch = standardTimes.find(st => st.time === lesson.starttime);
-      if (exactMatch) return exactMatch.num;
-
-      const [lessonHours, lessonMinutes] = lesson.starttime.split(':').map(Number);
-      const lessonTotalMinutes = lessonHours * 60 + lessonMinutes;
-
-      let closestTime = standardTimes[0];
-      let minDifference = Infinity;
-
-      for (const standardTime of standardTimes) {
-        const [stdHours, stdMinutes] = standardTime.time.split(':').map(Number);
-        const stdTotalMinutes = stdHours * 60 + stdMinutes;
-        const difference = Math.abs(lessonTotalMinutes - stdTotalMinutes);
-
-        if (difference < minDifference) {
-          minDifference = difference;
-          closestTime = standardTime;
-        }
+      // Using a more flexible approach matching common school start times
+      const standardTimes: { [key: string]: number } = {
+        '07:10': 0, '07:15': 0, // Allow slight variation for 0th period
+        '08:00': 1,
+        '08:55': 2, '09:00': 2, // Allow for 9:00 start
+        '09:50': 3, '09:55': 3,
+        '10:45': 4, '10:50': 4,
+        '11:40': 5, '11:45': 5,
+        '12:35': 6, '12:40': 6, '12:45': 6,
+        '13:30': 7, '13:35': 7, '13:40': 7,
+        '14:25': 8, '14:30': 8,
+        '15:20': 9, '15:25': 9,
+        '16:15': 10,'16:20': 10,
+        // Add more if needed
+      };
+      if (standardTimes[lesson.starttime] !== undefined) {
+        return standardTimes[lesson.starttime];
       }
-
-      return closestTime.num;
+      // Fallback if not found - maybe return '?' or handle differently
+      console.warn(`Lesson start time ${lesson.starttime} not found in standard times.`);
+      // Simple fallback: try to estimate based on hour
+      const hour = parseInt(lesson.starttime.split(':')[0], 10);
+      if (hour >= 7 && hour <= 17) return hour - 7; // Very rough estimation
+      return '?'; // Indicate unknown
     }
-    return 1;
+    return '?'; // Indicate unknown
   }
 
-  if (!lessonStore.lessonsByDay[day]) return 1;
+  // Dynamic numbering based on position in the filtered list for that day
+  if (!lessonStore.lessonsByDay[day]) return 1; // Should not happen if lesson exists
   let count = 0;
   for (const lesson of lessonStore.lessonsByDay[day]) {
-    if (lesson.id === currentLessonId) {
-      return count + 1;
-    }
+    // Only count actual lessons, not breaks or gap lessons for numbering
     if (isRegularLesson(lesson)) {
       count++;
+      if (lesson.id === currentLessonId) {
+        return count;
+      }
     }
   }
-  return count + 1;
+  // If the lesson itself is not regular (e.g., clicked on a break somehow?), return something indicative
+  const targetLesson = lessonStore.lessonsByDay[day].find(l => l.id === currentLessonId);
+  if(targetLesson && !isRegularLesson(targetLesson)) return '-';
+
+  return count + 1; // Fallback, should have been found in the loop
 };
 
+
 const openLessonDetails = (lesson: any) => {
-  selectedLesson.value = lesson;
+  // Add the date to the lesson object for the modal header check
+  const dayOfLesson = daysOfWeek.value[selectedDayIndex.value];
+  selectedLesson.value = { ...lesson, date: dayOfLesson };
   isModalOpen.value = true;
 };
 
 onMounted(async () => {
-  getCurrentWeek();
+  lessonStore.loadFromLocalStorage(); // Load cached data first
+
+
+  getCurrentWeek(); // Sets currentWeek and daysOfWeek refs
   updateSelectedDay();
 
-  await holidayStore.fetchHolidays();
-  lessonStore.loadFromLocalStorage();
-  await lessonStore.refreshLessons();
 
+  // Fetch holidays (usually doesn't need loading indicator)
+  holidayStore.fetchHolidays();
 
-  await nextTick();
+  // Fetch lessons for the initial week
+  const [startStr, endStr] = currentWeek.value.split(' - ');
+  const start = new Date(startStr.replace(/\./g, '-'));
+  const end = new Date(endStr.replace(/\./g, '-'));
+
+  // Determine if loading indicator is needed
+  const showLoading = !daysOfWeek.value.some(day => lessonStore.lessonsByDay[day]?.length > 0);
+
+  // Fetch lessons, potentially showing loading
+  await lessonStore.refreshLessons(
+      start.toISOString().split('T')[0],
+      end.toISOString().split('T')[0],
+      showLoading
+  );
+
+  initialLoadComplete.value = true;
+
+  // Now that data might be loaded and swiper is initialized (or will be soon),
+  // ensure the correct slide is selected visually.
+  // Use nextTick to wait for potential DOM updates after data load.
+  nextTick(() => {
+    if (swiperRef.value) {
+      swiperRef.value.slideTo(selectedDayIndex.value, 0); // Go to initial slide without animation
+    }
+  });
+
 });
 </script>
 
 <style scoped>
-.room-pill {
-  position: absolute;
-  right: 10px;
-  top: 50%;
-  transform: translateY(-50%);
-  background-color: var(--ion-color-primary);
-  color: white;
-  font-size: 0.75rem;
-  padding: 4px 8px;
-  border-radius: 12px;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-  z-index: 1;
-  text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.current-day {
-  color: var(--ion-color-primary);
-  font-weight: bold;
-}
+
 
 .lessons-container {
-  height: calc(100vh - 280px);
-  padding: 0 10px;
+  height: calc(100vh - 270px); /* Adjust this value as needed */
+  overflow-y: auto; /* Ensure scrolling within the container */
+  padding: 0; /* Swiper slide usually handles padding */
   background-color: var(--ion-background-color);
 }
 
+.swiper-slide ion-content.lessons-container {
+  /* Override potential Ionic content padding */
+  --padding-start: 0px;
+  --padding-end: 0px;
+  --padding-top: 10px; /* Add some space at the top */
+  --padding-bottom: 10px; /* Add some space at the bottom */
+}
+
+
 .lesson-item {
   display: flex;
-  margin: 12px 10px;
+  margin: 10px 15px; /* Slightly more horizontal margin */
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-  transition: transform 0.2s, box-shadow 0.2s;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15); /* Softer shadow */
   cursor: pointer;
   position: relative;
+  background-color: var(--ion-card-background); /* Ensure background */
+  /* Animation transition */
+  transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
 }
 
 .lesson-item:active {
-    transform: scale(0.98);
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-  }
+  transform: scale(0.97); /* Kisebb nyomás effekt */
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+}
 
 .regular-lesson {
-  display: flex;
-  background-color: var(--ion-card-background);
-  border-left: 4px solid var(--ion-color-primary);
-  height: 70px;
+  border-left: 5px solid var(--ion-color-primary);
+  min-height: 75px; /* Slightly taller */
 }
 
 .gap-lesson {
-  height: 50px;
-  background-color: rgba(255, 255, 255, 0.05);
+  min-height: 50px;
+  background-color: transparent; /* Less prominent */
+  border: 1px dashed rgba(var(--ion-color-medium-rgb), 0.3); /* Dashed border */
+  box-shadow: none;
   justify-content: center;
   align-items: center;
+  color: var(--ion-color-medium);
+  font-style: italic;
   opacity: 0.8;
 }
 
 .break-lesson {
-  box-shadow: 0 0 0 rgba(0, 0, 0, 0);
+  min-height: 35px; /* Shorter breaks */
+  background-color: rgba(var(--ion-color-medium-rgb), 0.08);
+  box-shadow: none;
+  border-left: 5px solid transparent; /* No border */
+  justify-content: center; /* Center break content */
+  align-items: center;
+  padding: 5px 15px;
 }
 
 .current-lesson {
-  border-left: 4px solid var(--ion-color-success);
-  background-color: rgba(var(--ion-color-success-rgb), 0.15);
-  box-shadow: 0 4px 12px rgba(var(--ion-color-success-rgb), 0.3);
+  border-left-color: var(--ion-color-success); /* Use border color */
+  box-shadow: 0 4px 10px rgba(var(--ion-color-success-rgb), 0.25); /* More pronounced shadow */
 }
+/* Keep background subtle */
+.current-lesson::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(var(--ion-color-success-rgb), 0.1);
+  border-radius: 12px; /* Match parent */
+  z-index: -1; /* Place behind content */
+  opacity: 0.6;
+}
+
+
 .current-lesson .room-pill {
   background-color: var(--ion-color-success);
 }
@@ -559,22 +716,38 @@ onMounted(async () => {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  width: 60px;
-  background-color: rgba(var(--ion-color-primary-rgb), 0.2);
-  padding: 0 8px;
+  width: 65px; /* Slightly wider */
+  background-color: rgba(var(--ion-color-primary-rgb), 0.1); /* Subtler background */
+  padding: 8px 4px;
+  border-right: 1px solid rgba(var(--ion-color-medium-rgb), 0.1); /* Separator */
+}
+
+.current-lesson .time-indicator {
+  background-color: rgba(var(--ion-color-success-rgb), 0.15);
 }
 
 .lesson-number {
-  font-size: 1.2rem;
-  font-weight: bold;
+  font-size: 1.3rem; /* Larger number */
+  font-weight: 600; /* Slightly bolder */
   color: var(--ion-color-primary);
+  line-height: 1.1;
 }
+
+.current-lesson .lesson-number {
+  color: var(--ion-color-success);
+}
+
 
 .lesson-time {
   display: flex;
   flex-direction: column;
+  align-items: center;
   font-size: 0.7rem;
-  color: var(--ion-color-medium);
+  color: var(--ion-color-medium-shade);
+  margin-top: 2px;
+}
+.lesson-time span:last-child {
+  opacity: 0.8;
 }
 
 .lesson-content {
@@ -582,24 +755,43 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 0 15px;
+  padding: 10px 15px; /* Consistent padding */
+  overflow: hidden; /* Prevent text overflow issues */
 }
 
 .lesson-name {
-  font-weight: bold;
+  font-weight: 600; /* Bolder name */
   font-size: 1rem;
   color: var(--ion-text-color);
-}
-
-.lesson-room {
-  font-size: 0.8rem;
-  color: var(--ion-color-medium-shade);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis; /* Add ellipsis if name is too long */
 }
 
 .lesson-teacher {
-  font-size: 0.75rem;
+  font-size: 0.8rem; /* Slightly larger teacher name */
   color: var(--ion-color-medium);
+  margin-top: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
+
+.room-pill {
+  position: absolute;
+  right: 12px; /* Consistent spacing */
+  top: 12px; /* Position top right */
+  /* transform: translateY(-50%); */ /* Removed transform */
+  background-color: var(--ion-color-primary);
+  color: white;
+  font-size: 0.7rem; /* Smaller text */
+  font-weight: 500;
+  padding: 3px 7px; /* Adjust padding */
+  border-radius: 10px; /* Pill shape */
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  z-index: 1;
+}
+
 
 .break-content {
   display: flex;
@@ -607,10 +799,12 @@ onMounted(async () => {
   justify-content: center;
   gap: 8px;
   color: var(--ion-color-medium);
+  font-size: 0.85rem;
 }
 
 .break-icon {
-  font-size: 1.2rem;
+  font-size: 1.1rem; /* Slightly smaller */
+  opacity: 0.8;
 }
 
 .no-lessons {
@@ -618,120 +812,170 @@ onMounted(async () => {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  height: 100%;
+  min-height: 200px; /* Ensure it takes some space */
+  padding: 40px 20px;
+  text-align: center;
   color: var(--ion-color-medium);
 }
 
 .no-lessons-icon {
-  font-size: 3rem;
+  font-size: 3.5rem; /* Larger icon */
   margin-bottom: 16px;
-  opacity: 0.5;
+  opacity: 0.4; /* More subtle */
+}
+.no-lessons p {
+  font-size: 1rem;
 }
 
 .holiday-card {
   margin: 16px;
-  border-left: 4px solid var(--ion-color-warning);
-  background-color: rgba(var(--ion-color-warning-rgb), 0.1);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border-left: 5px solid var(--ion-color-warning);
+  background-color: rgba(var(--ion-color-warning-rgb), 0.08); /* Subtler background */
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.1);
+}
+.holiday-card ion-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--ion-color-warning);
+}
+.holiday-card ion-card-content {
+  font-size: 0.95rem;
+  padding-top: 0;
 }
 
+
+/* --- Modal Styles --- */
 .lesson-details-modal {
   --width: 90%;
   --max-width: 500px;
-  --border-radius: 16px;
-  --max-height: 500px;
-  --box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+  --border-radius: 20px; /* More rounded */
+  --max-height: 60vh; /* Limit height */
+  --box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2); /* Softer shadow */
 }
 
 .modal-content {
   height: 100%;
   display: flex;
   flex-direction: column;
+  background-color: var(--ion-background-color); /* Ensure background */
+  border-radius: 20px; /* Match modal */
+  overflow: hidden; /* Needed for child border-radius */
 }
 
 .modal-header {
-  background: linear-gradient(135deg, var(--ion-color-primary), var(--ion-color-primary-shade));
-  color: white;
-  padding: 20px;
-  border-radius: 16px 16px 0 0;
+  background: linear-gradient(135deg, var(--ion-color-primary), var(--ion-color-primary-tint)); /* Lighter gradient */
+  color: var(--ion-color-primary-contrast); /* Ensure contrast */
+  padding: 15px 20px; /* Adjust padding */
+  /* Removed border radius here, applied to modal-content */
 }
 
 .current-lesson-header {
-  background: linear-gradient(135deg, var(--ion-color-success), var(--ion-color-success-shade));
+  background: linear-gradient(135deg, var(--ion-color-success), var(--ion-color-success-tint));
+  color: var(--ion-color-success-contrast);
 }
 
 .header-top {
   display: flex;
-  justify-content: space-between;
+  /* justify-content: space-between; - Removed as only close button is here */
+  justify-content: flex-end; /* Align close button to the right */
   align-items: center;
+  margin-bottom: 5px; /* Space before title */
 }
 
+.header-top ion-button {
+  --color: var(--ion-color-primary-contrast); /* Ensure button icon is visible */
+}
+.current-lesson-header .header-top ion-button {
+  --color: var(--ion-color-success-contrast);
+}
+
+
 .subject-title {
-  font-size: 1.6rem;
-  font-weight: 700;
-  margin: 10px 0 5px;
+  font-size: 1.5rem; /* Adjust size */
+  font-weight: 600; /* Bold but not extra bold */
+  margin: 0 0 10px 0; /* Adjusted margin */
+  line-height: 1.3;
 }
 
 .modal-inner-content {
   --padding-start: 0;
   --padding-end: 0;
+  --padding-top: 0;
+  --padding-bottom: 20px; /* Space at bottom */
 }
 
 .lesson-details {
-  padding: 0 16px;
+  padding: 0 20px; /* Match header padding */
 }
 
 .detail-section {
-  border-radius: 12px;
-  padding: 16px;
-  margin: 16px 0;
+  /* Removed background and border-radius, looks cleaner */
+  padding: 16px 0; /* Vertical padding */
+  margin: 0; /* No extra margin */
 }
 
 .detail-row {
   display: flex;
   align-items: flex-start;
-  gap: 20px;
-  margin-bottom: 16px;
+  gap: 16px; /* Standard gap */
+  margin-bottom: 20px; /* More space between rows */
+  padding-bottom: 10px;
+  border-bottom: 1px solid rgba(var(--ion-color-medium-rgb), 0.1); /* Subtle separator */
 }
 
 .detail-row:last-child {
   margin-bottom: 0;
+  border-bottom: none;
 }
 
 .detail-row ion-icon {
-  font-size: 24px;
-  margin-top: 3px;
+  font-size: 22px; /* Slightly smaller icon */
+  margin-top: 4px;
+  flex-shrink: 0; /* Prevent icon shrinking */
+  color: var(--ion-color-primary); /* Consistent color */
 }
 
 .detail-row h3 {
-  margin: 0 0 4px 0;
-  font-size: 0.9rem;
-  color: var(--ion-color-medium);
+  margin: 0 0 5px 0;
+  font-size: 0.8rem; /* Smaller label */
+  color: var(--ion-color-medium-shade);
   font-weight: 500;
+  text-transform: uppercase; /* Uppercase label */
+  letter-spacing: 0.5px;
 }
 
 .detail-row p {
   margin: 0;
-  font-size: 1.1rem;
+  font-size: 1rem; /* Standard text size */
   color: var(--ion-text-color);
   font-weight: 500;
+  line-height: 1.4;
 }
 
-.detail-secondary {
-  font-size: 0.9rem;
+p.detail-secondary {
+  font-size: 0.85rem !important; /* Ensure override */
   color: var(--ion-color-medium);
   margin-top: 4px !important;
 }
 
+
+/* --- Skeleton Styles --- */
+.lessons-skeleton-container {
+  padding: 0 10px; /* Match lesson list container */
+}
+
 .skeleton-lesson-item {
   display: flex;
-  margin: 12px 10px;
+  margin: 12px 5px; /* Match lesson item margin */
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-  height: 70px;
-  background-color: var(--ion-card-background);
-  border-left: 4px solid rgba(var(--ion-color-primary-rgb), 0.3);
+  height: 75px; /* Match regular lesson height */
+  background-color: var(--ion-card-background); /* Match lesson background */
+  border-left: 5px solid rgba(var(--ion-color-medium-rgb), 0.2); /* Dimmed border */
+  opacity: 0.7; /* Make skeleton slightly transparent */
 }
 
 .skeleton-time {
@@ -739,24 +983,28 @@ onMounted(async () => {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  width: 60px;
-  background-color: rgba(var(--ion-color-primary-rgb), 0.1);
-  padding: 8px;
+  width: 65px; /* Match time indicator */
+  background-color: rgba(var(--ion-color-medium-rgb), 0.05);
+  padding: 8px 4px;
+  border-right: 1px solid rgba(var(--ion-color-medium-rgb), 0.08);
 }
 
+.skeleton-number, .skeleton-times, .skeleton-name, .skeleton-room, .skeleton-teacher {
+  background-color: rgba(var(--ion-color-medium-rgb), 0.15); /* Base color for pulse */
+}
+
+
 .skeleton-number {
-  width: 20px;
-  height: 20px;
+  width: 25px; /* Slightly larger */
+  height: 25px;
   border-radius: 4px;
-  background-color: rgba(var(--ion-color-medium-rgb), 0.2);
-  margin-bottom: 6px;
+  margin-bottom: 8px; /* More space */
 }
 
 .skeleton-times {
   width: 40px;
-  height: 12px;
-  border-radius: 2px;
-  background-color: rgba(var(--ion-color-medium-rgb), 0.2);
+  height: 14px; /* Taller */
+  border-radius: 3px;
 }
 
 .skeleton-content {
@@ -764,81 +1012,67 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 0 15px;
-  gap: 6px;
+  padding: 10px 15px;
+  gap: 8px; /* Increased gap */
 }
 
 .skeleton-name {
-  width: 70%;
-  height: 16px;
+  width: 75%; /* Wider */
+  height: 18px; /* Taller */
   border-radius: 4px;
-  background-color: rgba(var(--ion-color-medium-rgb), 0.2);
 }
 
-.skeleton-room {
-  width: 30%;
-  height: 12px;
-  border-radius: 4px;
-  background-color: rgba(var(--ion-color-medium-rgb), 0.2);
+.skeleton-room { /* Combined room/teacher placeholder */
+  width: 45%;
+  height: 14px;
+  border-radius: 3px;
+}
+.skeleton-teacher { /* No need for separate teacher skeleton */
+  display: none;
 }
 
-.skeleton-teacher {
-  width: 50%;
-  height: 10px;
-  border-radius: 4px;
-  background-color: rgba(var(--ion-color-medium-rgb), 0.2);
-}
 
-.pulse {
-  animation: pulse 1.5s infinite ease-in-out;
-}
-
-@keyframes pulse {
-  0% {
-    opacity: 0.6;
-  }
-  50% {
-    opacity: 0.3;
-  }
-  100% {
-    opacity: 0.6;
-  }
-}
-
+/* --- Calendar Header Styles --- */
 .calendar-header {
-  padding: 16px 12px;
-  background-color: var(--ion-background-color);
-  border-bottom: 1px solid rgba(var(--ion-color-medium-rgb), 0.2);
+  padding: 12px 10px 10px 10px; /* Adjusted padding */
+  border-bottom: 1px solid var(--ion-border-color, rgba(var(--ion-color-medium-rgb), 0.2));
+  position: sticky; /* Make header sticky */
+  z-index: 10; /* Ensure it's above content */
+
 }
 
 .week-navigator {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  margin-bottom: 16px;
+  margin-bottom: 12px; /* Less margin */
 }
 
 .nav-button {
-  --padding-start: 8px;
-  --padding-end: 8px;
+  --padding-start: 6px;
+  --padding-end: 6px;
   margin: 0;
-  height: 36px;
+  height: 32px; /* Smaller buttons */
+  --color: var(--ion-color-primary); /* Ensure color */
+}
+.nav-button ion-icon {
+  font-size: 20px; /* Adjust icon size */
 }
 
 .week-display {
   display: flex;
   align-items: center;
-  background-color: rgba(var(--ion-color-primary-rgb), 0.1);
-  border-radius: 18px;
-  padding: 8px 16px;
+  background-color: rgba(var(--ion-color-primary-rgb), 0.08); /* Subtler */
+  border-radius: 16px;
+  padding: 6px 12px; /* Adjust padding */
   font-weight: 500;
   color: var(--ion-color-primary);
-  font-size: 0.9rem;
+  font-size: 0.85rem; /* Smaller font */
 }
 
 .calendar-icon {
   margin-right: 6px;
-  font-size: 1.1rem;
+  font-size: 1rem; /* Adjust size */
 }
 
 .days-carousel {
@@ -846,8 +1080,8 @@ onMounted(async () => {
   overflow-x: auto;
   scrollbar-width: none;
   -ms-overflow-style: none;
-  margin: 0 -4px;
-  padding: 4px 4px;
+  /* margin: 0 -4px; */ /* Removed negative margin */
+  padding: 4px 0; /* Vertical padding only */
 }
 
 .days-carousel::-webkit-scrollbar {
@@ -855,63 +1089,133 @@ onMounted(async () => {
 }
 
 .day-item {
-  flex: 0 0 14.28%;
-  padding: 0 4px;
+  flex: 0 0 auto; /* Allow items to size naturally */
+  width: calc(100% / 7 - 6px); /* Distribute width, account for gap */
+  min-width: 45px; /* Minimum width */
+  margin: 0 3px; /* Gap between items */
+  padding: 0;
   cursor: pointer;
-  transition: transform 0.2s;
+  /* Removed transition here, handled by child */
 }
 
-.day-item:active {
-  transform: scale(0.95);
+.day-item:active .day-wrapper {
+  transform: scale(0.95); /* Apply scale on wrapper */
 }
 
 .day-wrapper {
   display: flex;
   flex-direction: column;
   align-items: center;
+  padding: 5px 0; /* Padding inside wrapper */
+  border-radius: 8px; /* Rounded wrapper */
+  transition: transform 0.15s ease-out, background-color 0.3s ease; /* Add background transition */
 }
 
 .day-badge {
-  width: 40px;
-  height: 40px;
+  width: 36px; /* Smaller badge */
+  height: 36px;
   display: flex;
   align-items: center;
   justify-content: center;
   border-radius: 50%;
-  background-color: rgba(var(--ion-color-medium-rgb), 0.1);
+  background-color: transparent; /* Transparent background */
+  color: var(--ion-color-medium-shade);
+  font-weight: 600; /* Bolder */
+  font-size: 0.9rem;
+  margin-bottom: 3px;
+  border: 2px solid transparent; /* Placeholder for border */
+  /* Transition added via CSS below */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1); /* Refined animation timing */
+}
+
+.date-number {
+  font-size: 0.7rem; /* Smaller date */
   color: var(--ion-color-medium);
   font-weight: 500;
-  margin-bottom: 4px;
-  transition: all 0.2s ease;
+  transition: color 0.3s ease;
+}
+
+/* --- Selected and Today States --- */
+.selected-day .day-wrapper {
+  background-color: rgba(var(--ion-color-primary-rgb), 0.1); /* Highlight wrapper */
 }
 
 .selected-day .day-badge {
   background-color: var(--ion-color-primary);
   color: white;
-  box-shadow: 0 2px 8px rgba(var(--ion-color-primary-rgb), 0.4);
+  border-color: var(--ion-color-primary);
+  transform: scale(1.05); /* Refined scale */
 }
 
 .today .day-badge {
-  border: 2px solid var(--ion-color-primary);
+  border: 2px solid var(--ion-color-primary); /* Border for today */
+  color: var(--ion-color-primary); /* Color for today */
+}
+
+.selected-day .date-number,
+.today .date-number {
+  color: var(--ion-color-primary);
+  font-weight: 600; /* Bold date number */
 }
 
 .selected-day.today .day-badge {
-  border: none;
+  /* Already styled by .selected-day .day-badge */
 }
 
-.date-number {
-  font-size: 0.75rem;
-  color: var(--ion-color-medium);
-  font-weight: 500;
+
+/* --- Animation Definitions --- */
+
+/* General Fade */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.3s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
 }
 
-.selected-day .date-number {
-  color: var(--ion-color-primary);
-  font-weight: bold;
+/* List Item Animation (Staggered Fade-in-up) */
+.list-anim-enter-active {
+  transition: all 0.4s ease-out;
+  transition-delay: calc(0.05s * var(--i)); /* Staggering effect */
+}
+.list-anim-leave-active {
+  transition: all 0.2s ease-in;
+  position: absolute; /* Important for transition-group leave animation */
+  width: calc(100% - 30px); /* Match lesson item margin (15px each side) */
+  opacity: 0; /* Fade out immediately */
+}
+.list-anim-enter-from {
+  opacity: 0;
+  transform: translateY(20px);
+}
+.list-anim-leave-to {
+  opacity: 0;
+  transform: translateX(30px); /* Slide out effect */
 }
 
-.day-badge.today + .date-number {
-  color: var(--ion-color-primary);
-  font-weight: bold;
+
+
+
+.lesson-details-modal .lesson-details {
+  animation: modalContentFadeIn 0.4s ease-out 0.15s forwards; /* Delay after modal transition */
+  opacity: 0;
+}
+@keyframes modalContentFadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.pulse {
+  animation: pulse 1.8s infinite ease-in-out;
+}
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
 }
 </style>

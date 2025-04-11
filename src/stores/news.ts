@@ -1,7 +1,6 @@
 import {defineStore} from 'pinia';
 import {ref} from 'vue';
 import {HubConnection, HubConnectionBuilder} from '@microsoft/signalr';
-import {useUserStore} from "@/stores/user";
 
 interface NewsItem {
   id: number;
@@ -54,13 +53,13 @@ export const useNewsStore = defineStore('news', () => {
       backgroundLoading.value = true;
     }
 
-    const userStore = useUserStore();
     try {
-      const response = await fetch('https://backend-production-f2dd.up.railway.app/news', {
+      const response = await fetch('https://api.vasvariapp.hu/news', {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${userStore.token}`
-        },
+          'Content-Type': 'application/json',
+      },
+      credentials: 'include',
       });
 
       if (!response.ok) {
@@ -92,7 +91,7 @@ export const useNewsStore = defineStore('news', () => {
   const setupSignalR = () => {
     try {
       connection.value = new HubConnectionBuilder()
-          .withUrl('https://backend-production-f2dd.up.railway.app/notificationHub')
+          .withUrl('https://api.vasvariapp.hu/notificationHub')
           .build();
 
       connection.value.on('ReceiveMessage', (title: string, message: string) => {

@@ -45,7 +45,7 @@ const PUBLIC_PATHS = ["/login", "/register"]; // Routes accessible without login
 
 router.beforeEach(async (to, from, next) => {
   const userStore = useUserStore();
-  const isAuthenticated = !!userStore.token;
+  const isAuthenticated = userStore.isAuthenticated;
   const isPublicPath = PUBLIC_PATHS.includes(to.path);
   const isOnline = navigator.onLine;
 
@@ -88,10 +88,11 @@ router.beforeEach(async (to, from, next) => {
       const firstName = localStorage.getItem("firstName");
       const lastName = localStorage.getItem("lastName");
       const email = localStorage.getItem("email");
+      const uid = localStorage.getItem("uid") || "";
 
       if (firstName && lastName && email) {
         console.log("Offline: User data not in store, but found in localStorage. Restoring minimal session.");
-        userStore.setUser({ firstName, lastName, email });
+        userStore.setUser({ firstName, lastName, email, uid });
         next();
       } else {
         console.log("Offline: No user data found, redirecting to login");

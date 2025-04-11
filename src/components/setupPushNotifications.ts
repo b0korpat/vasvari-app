@@ -1,5 +1,4 @@
 import {PushNotifications} from '@capacitor/push-notifications';
-import {useUserStore} from "@/stores/user";
 
 
 export async function setupPushNotifications() {
@@ -32,14 +31,13 @@ export async function setupPushNotifications() {
 
 export const sendFmcToServer = async () => {
     setTimeout(async () => {
-        let userStore = useUserStore();
         try {
-            const response = await fetch("https://backend-production-f2dd.up.railway.app/Auth/add-device-token", {
+            const response = await fetch("https://api.vasvariapp.hu/Auth/add-device-token", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    'Authorization': `Bearer ${userStore.token}`
                 },
+                credentials: 'include',
                 body: JSON.stringify({
                     deviceToken: localStorage.getItem("userDeviceToken"),
                 }),

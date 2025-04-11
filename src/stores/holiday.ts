@@ -1,7 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { HubConnectionBuilder, HubConnection } from '@microsoft/signalr';
-import {useUserStore} from "@/stores/user";
 
 export interface Holiday {
   id: number;
@@ -20,13 +19,13 @@ export const useHolidayStore = defineStore('holiday', () => {
   const LOCAL_STORAGE_KEY = 'holidaysData';
 
   const fetchHolidays = async () => {
-    const userStore = useUserStore();
     try {
-      const response = await fetch('https://backend-production-f2dd.up.railway.app/Break', {
+      const response = await fetch('https://api.vasvariapp.hu/Break', {
         method: 'GET',
         headers: {
-          'Authorization': `Bearer ${userStore.token}`
-        },
+          'Content-Type': 'application/json',
+      },
+      credentials: 'include',
       });
 
       if (!response.ok) throw new Error('Failed to fetch holiday data');
@@ -61,7 +60,7 @@ export const useHolidayStore = defineStore('holiday', () => {
 
   const setupSignalR = () => {
     connection.value = new HubConnectionBuilder()
-        .withUrl('https://backend-production-f2dd.up.railway.app/notificationHub')
+        .withUrl('https://api.vasvariapp.hu/notificationHub')
         .build();
 
     connection.value.on('ReceiveMessage', (title: string, message: string) => {

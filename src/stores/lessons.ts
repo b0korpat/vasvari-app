@@ -1,4 +1,3 @@
-// Optimized lessonStore.ts
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { useUserStore } from "@/stores/user";
@@ -6,9 +5,9 @@ import { useUserStore } from "@/stores/user";
 export const useLessonStore = defineStore('lessonStore', () => {
     const lessonsByDay = ref<Record<string, any[]>>({});
     const loading = ref(false);
+    const backgroundLoading = ref(false);
     const lastUpdate = ref<Date | null>(null);
 
-    // Memoize formatted dates to avoid repeated calculations
     const dateFormatCache = new Map<string, string>();
     const timeFormatCache = new Map<string, string>();
 
@@ -32,15 +31,17 @@ export const useLessonStore = defineStore('lessonStore', () => {
                 if (savedLastUpdate) {
                     lastUpdate.value = new Date(savedLastUpdate);
                 }
+                return true;
             } catch (e) {
                 console.error('Failed to parse saved lessons', e);
                 localStorage.removeItem('lessonsByDay');
                 localStorage.removeItem('lessonsLastUpdate');
+                return false;
             }
         }
+        return false;
     };
 
-    // Optimized date formatting with caching
     const formatDate = (dateString: string) => {
         if (dateFormatCache.has(dateString)) {
             return dateFormatCache.get(dateString)!;
@@ -54,7 +55,6 @@ export const useLessonStore = defineStore('lessonStore', () => {
         return formatted;
     };
 
-    // Optimized time formatting with caching
     const formatTime = (dateString: string) => {
         if (timeFormatCache.has(dateString)) {
             return timeFormatCache.get(dateString)!;
@@ -70,7 +70,6 @@ export const useLessonStore = defineStore('lessonStore', () => {
     const processLessonData = (data: any[], startDate: string, endDate: string) => {
         const updatedLessons: Record<string, any[]> = { ...lessonsByDay.value };
 
-        // Filter out dates in the current range
         Object.keys(updatedLessons).forEach(dateStr => {
             const [year, month, day] = dateStr.split('.');
             const lessonDate = new Date(`${year}-${month}-${day}`);
@@ -82,7 +81,6 @@ export const useLessonStore = defineStore('lessonStore', () => {
             }
         });
 
-        // Process new lessons
         const newLessons: Record<string, any[]> = {};
         data.forEach(lesson => {
             const day = formatDate(lesson.startTime);
@@ -108,7 +106,6 @@ export const useLessonStore = defineStore('lessonStore', () => {
             });
         });
 
-        // Process each day's lessons with breaks
         Object.entries(newLessons).forEach(([day, lessons]) => {
             lessons.sort((a, b) => a.starttime.localeCompare(b.starttime));
             const lessonsWithBreaks: any[] = [];
@@ -153,29 +150,31 @@ export const useLessonStore = defineStore('lessonStore', () => {
         return updatedLessons;
     };
 
-    const fetchLessons = async (startDate: string, endDate: string, spinner: boolean): Promise<void> => {
-        if (loading.value) return; // Prevent duplicate requests
-        loading.value = spinner;
+    const fetchLessons = async (startDate: string, endDate: string, displayLoading: boolean = false): Promise<boolean> => {
+        if (displayLoading) {
+            if (loading.value) return false;
+            loading.value = true;
+        } else {
+            if (backgroundLoading.value) return false;
+            backgroundLoading.value = true;
+        }
 
         try {
             const userStore = useUserStore();
-            const accessToken = localStorage.getItem('token');
-            if (!accessToken) throw new Error('No access token');
+            if (!userStore.isAuthenticated) throw new Error('No access token');
 
             const response = await fetch(
-                `https://backend-production-f2dd.up.railway.app/Lesson/GetLessonsByTimeframeForStudent?startDate=${startDate}&endDate=${endDate}&studentId=${userStore.uid}`,
+                `https://api.vasvariapp.hu/Lesson/GetLessonsByTimeframeForStudent?startDate=${startDate}&endDate=${endDate}&studentId=${userStore.uid}`,
                 {
                     method: 'GET',
-                    credentials: 'include',
                     headers: {
                         'Content-Type': 'application/json',
-                        'Authorization': `Bearer ${accessToken}`,
                     },
+                    credentials: 'include',
                 }
             );
 
             if (response.status === 404) {
-                // Handle no lessons case
                 const updatedLessons = { ...lessonsByDay.value };
                 Object.keys(updatedLessons).forEach(dateStr => {
                     const [year, month, day] = dateStr.split('.');
@@ -189,7 +188,7 @@ export const useLessonStore = defineStore('lessonStore', () => {
                 });
                 lessonsByDay.value = updatedLessons;
                 saveToLocalStorage();
-                return;
+                return true;
             }
 
             if (!response.ok) throw new Error('Failed to fetch lesson data');
@@ -197,58 +196,59 @@ export const useLessonStore = defineStore('lessonStore', () => {
             const data = await response.json();
             lessonsByDay.value = processLessonData(data, startDate, endDate);
             saveToLocalStorage();
+            return true;
         } catch (error) {
             console.error('Error fetching lessons:', error);
-            loadFromLocalStorage();
+            return false;
         } finally {
-            loading.value = false;
+            if (displayLoading) {
+                loading.value = false;
+            } else {
+                backgroundLoading.value = false;
+            }
         }
     };
 
-    const refreshLessons = async (currentStartDate?: string, currentEndDate?: string) => {
-        // First fetch current week if dates provided
+    const refreshLessons = async (currentStartDate?: string, currentEndDate?: string, displayLoading: boolean = false) => {
         if (currentStartDate && currentEndDate) {
-            await fetchLessons(currentStartDate, currentEndDate, true);
+            await fetchLessons(currentStartDate, currentEndDate, displayLoading);
+            return;
         }
 
-        // Find date range for background refresh
         const allDates = Object.keys(lessonsByDay.value);
         if (allDates.length === 0) {
-            // Fallback if no lessons stored yet
             const today = new Date();
             const twoWeeksLater = new Date();
             twoWeeksLater.setDate(today.getDate() + 14);
             await fetchLessons(
                 today.toISOString().split('T')[0],
                 twoWeeksLater.toISOString().split('T')[0],
-                false
+                displayLoading
             );
             return;
         }
 
-        // Convert date strings to Date objects
         const dateObjects = allDates.map(dateStr => {
             const [year, month, day] = dateStr.split('.');
             return new Date(`${year}-${month}-${day}`);
         });
 
-        // Find date range with buffer
         const earliestDate = new Date(Math.min(...dateObjects.map(d => d.getTime())));
         const latestDate = new Date(Math.max(...dateObjects.map(d => d.getTime())));
         earliestDate.setDate(earliestDate.getDate() - 7);
         latestDate.setDate(latestDate.getDate() + 14);
 
-        // Silently update in background
         await fetchLessons(
             earliestDate.toISOString().split('T')[0],
             latestDate.toISOString().split('T')[0],
-            false
+            displayLoading
         );
     };
 
     return {
         lessonsByDay,
         loading,
+        backgroundLoading,
         lastUpdate,
         loadFromLocalStorage,
         fetchLessons,
