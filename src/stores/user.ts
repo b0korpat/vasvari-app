@@ -50,7 +50,6 @@ export const useUserStore = defineStore('user', () => {
     uid.value = '';
     isAuthenticated.value = false;
 
-    // Remove from localStorage
     localStorage.removeItem('firstName');
     localStorage.removeItem('lastName');
     localStorage.removeItem('email');

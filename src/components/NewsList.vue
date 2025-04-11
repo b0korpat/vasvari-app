@@ -106,15 +106,12 @@ const newsStore = useNewsStore();
 const isModalOpen = ref(false);
 const selectedNewsItem = ref<NewsItem | null>(null);
 
-// Function to truncate content for preview
 const truncateContent = (content: string, maxLength: number = 90): string => {
   if (!content) return '';
-  // Remove potential HTML tags before truncating
   const strippedContent = content.replace(/<[^>]*>/g, '');
   if (strippedContent.length <= maxLength) {
     return strippedContent;
   }
-  // Ensure truncation doesn't break words awkwardly if possible
   const truncated = strippedContent.substring(0, maxLength);
   const lastSpace = truncated.lastIndexOf(' ');
   return (lastSpace > 0 ? truncated.substring(0, lastSpace) : truncated) + '...';
@@ -123,12 +120,10 @@ const truncateContent = (content: string, maxLength: number = 90): string => {
 
 const doRefresh = async (event: CustomEvent) => {
   try {
-    await newsStore.fetchNews(true); // Force fetch fresh data
+    await newsStore.fetchNews(true);
   } catch (error) {
     console.error("Error during refresh:", error);
-    // Optionally show a toast notification to the user
   } finally {
-    // Ensure complete() is called even if there's an error
     if (event && event.target && typeof (event.target as HTMLIonRefresherElement).complete === 'function') {
       await (event.target as HTMLIonRefresherElement).complete();
     }
@@ -143,33 +138,30 @@ const openModal = (item: NewsItem) => {
 
 const closeModal = () => {
   isModalOpen.value = false;
-  // Optional: Delay clearing selectedNewsItem until modal is fully closed
-  // setTimeout(() => { selectedNewsItem.value = null; }, 300);
+
 };
 
 onMounted(async () => {
-  // Initialize fetches news only if not already loaded
   await newsStore.initialize();
 });
 </script>
 
 <style scoped>
-/* --- Base Styles (Keep most of your originals) --- */
+
 
 .news-card {
   margin: 12px 10px;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Softer shadow */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   overflow: hidden;
   border-left: 4px solid var(--ion-color-primary);
-  height: auto; /* Let content determine height */
-  min-height: 110px; /* Keep min height */
+  height: auto;
+  min-height: 110px;
   background-color: var(--ion-card-background);
-  /* Remove animation properties handled by transition-group */
-  transition: transform 0.1s ease-out, box-shadow 0.1s ease-out; /* Faster feedback on active */
+  transition: transform 0.1s ease-out, box-shadow 0.1s ease-out;
 }
 .news-card:active {
-  transform: scale(0.98); /* Finomabb lenyomás effekt */
+  transform: scale(0.98);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
 }
 
@@ -186,17 +178,17 @@ onMounted(async () => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background-color: rgba(var(--ion-color-medium-rgb), 0.1); /* Placeholder color */
+  background-color: rgba(var(--ion-color-medium-rgb), 0.1);
 }
 
 .news-thumbnail {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transition: transform 0.3s ease; /* Add hover effect */
+  transition: transform 0.3s ease;
 }
 .news-card:hover .news-thumbnail {
-  transform: scale(1.05); /* Slight zoom on hover */
+  transform: scale(1.05);
 }
 
 
@@ -204,20 +196,17 @@ onMounted(async () => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  /* justify-content: space-between; Let content flow naturally */
   padding: 12px 15px;
-  overflow: hidden; /* Prevent content overflow */
+  overflow: hidden;
 }
 
-/* .news-content.with-image { No need for this if padding is consistent } */
 
 .news-title {
-  font-weight: 600; /* Slightly bolder */
-  font-size: 1.05rem; /* Slightly larger */
+  font-weight: 600;
+  font-size: 1.05rem;
   color: var(--ion-text-color);
-  margin-bottom: 6px; /* Adjust spacing */
+  margin-bottom: 6px;
   line-height: 1.3;
-  /* Clamp title to 2 lines */
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -227,27 +216,26 @@ onMounted(async () => {
 
 .news-preview {
   margin: 0 0 10px 0;
-  color: var(--ion-color-medium-shade); /* Slightly dimmer preview text */
+  color: var(--ion-color-medium-shade);
   line-height: 1.4;
   font-size: 0.85rem;
-  /* Clamp preview to 2 or 3 lines */
   display: -webkit-box;
-  -webkit-line-clamp: 2; /* Adjust as needed */
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   text-overflow: ellipsis;
-  flex-grow: 1; /* Allow preview to take available space */
-  min-height: calc(1.4em * 2); /* Ensure space for clamped lines */
+  flex-grow: 1;
+  min-height: calc(1.4em * 2);
 }
 
 .info-item {
   display: flex;
   align-items: center;
-  margin-top: 8px; /* Space above date */
+  margin-top: 8px;
 }
 
 .info-icon {
-  font-size: 0.9rem; /* Slightly smaller icon */
+  font-size: 0.9rem;
   margin-right: 6px;
   color: var(--ion-color-medium);
   flex-shrink: 0;
@@ -260,19 +248,18 @@ onMounted(async () => {
   white-space: nowrap;
 }
 
-/* --- Skeleton Styles --- */
 .news-skeleton-container {
-  padding: 1px 0; /* Match news-list-container */
+  padding: 1px 0;
 }
 
 .skeleton-news-card {
   margin: 12px 10px;
   border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* Match card shadow */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-  height: 110px; /* Match min-height */
+  height: 110px;
   background-color: var(--ion-card-background);
-  border-left: 4px solid rgba(var(--ion-color-medium-rgb), 0.2); /* Dimmed border */
+  border-left: 4px solid rgba(var(--ion-color-medium-rgb), 0.2);
   opacity: 0.8;
 }
 
@@ -290,7 +277,7 @@ onMounted(async () => {
 .skeleton-image {
   width: 100%;
   height: 100%;
-  background-color: rgba(var(--ion-color-medium-rgb), 0.15); /* Base color */
+  background-color: rgba(var(--ion-color-medium-rgb), 0.15);
 }
 
 .skeleton-news-content {
@@ -298,9 +285,9 @@ onMounted(async () => {
   display: flex;
   flex-direction: column;
   padding: 12px 15px;
-  justify-content: space-between; /* Align items vertically */
+  justify-content: space-between;
 }
-.skeleton-news-content > div { /* Add gap between skeleton elements */
+.skeleton-news-content > div {
   margin-bottom: 8px;
 }
 .skeleton-news-content > div:last-child {
@@ -309,26 +296,25 @@ onMounted(async () => {
 
 
 .skeleton-title {
-  height: 20px; /* Taller title */
+  height: 20px;
   width: 75%;
   border-radius: 4px;
   background-color: rgba(var(--ion-color-medium-rgb), 0.15);
-  margin-bottom: 8px; /* Reset margin handled by parent gap */
+  margin-bottom: 8px;
 }
 
 .skeleton-preview {
-  height: 14px; /* Standard line height */
+  height: 14px;
   width: 95%;
   border-radius: 4px;
   background-color: rgba(var(--ion-color-medium-rgb), 0.15);
-  margin-bottom: 4px; /* Space below first line */
+  margin-bottom: 4px;
 }
-/* Add second line for preview */
 .skeleton-preview::after {
   content: '';
   display: block;
   height: 14px;
-  width: 85%; /* Shorter second line */
+  width: 85%;
   border-radius: 4px;
   background-color: rgba(var(--ion-color-medium-rgb), 0.15);
   margin-top: 6px;
@@ -338,73 +324,71 @@ onMounted(async () => {
 .skeleton-info {
   display: flex;
   align-items: center;
-  margin-top: auto; /* Push to bottom */
+  margin-top: auto;
 }
 
 .skeleton-icon {
-  width: 16px; /* Match icon size */
+  width: 16px;
   height: 16px;
-  border-radius: 4px; /* Square icon */
+  border-radius: 4px;
   margin-right: 8px;
   background-color: rgba(var(--ion-color-medium-rgb), 0.15);
 }
 
 .skeleton-date {
-  width: 90px; /* Wider date */
+  width: 90px;
   height: 14px;
   border-radius: 4px;
   background-color: rgba(var(--ion-color-medium-rgb), 0.15);
 }
 
 
-/* --- Modal Styles --- */
 .modal-content {
   --padding-start: 0;
   --padding-end: 0;
   --padding-top: 0;
   --padding-bottom: 0;
-  background-color: var(--ion-background-color); /* Explicit background */
+  background-color: var(--ion-background-color);
 }
 
 .modal-image-container {
-  position: relative; /* For absolute positioning of button */
+  position: relative;
   width: 100%;
-  height: 250px; /* Fixed height for consistency */
-  overflow: hidden; /* Clip image */
-  border-radius: 0 0 16px 16px; /* Rounded bottom corners */
+  height: 250px;
+  overflow: hidden;
+  border-radius: 0 0 16px 16px;
 }
 
 .modal-image {
   width: 100%;
   height: 100%;
-  object-fit: cover; /* Ensure image covers container */
+  object-fit: cover;
   display: block;
 }
 
-/* If no image, provide space for close button */
 .modal-header {
-  height: 60px; /* Space for button */
+  height: 60px;
   position: relative;
   width: 100%;
 }
 
 .modal-close-button {
-  position: absolute; /* Position relative to container */
-  top: calc(var(--ion-safe-area-top, 0px) + 10px); /* Consider safe area */
+  position: absolute;
+  top: calc(var(--ion-safe-area-top, 0px) + 10px);
   left: 15px;
-  z-index: 10; /* Ensure button is above image/header */
+  z-index: 10;
 }
 
 .modal-close-button ion-button {
-  --color: white; /* Default color for image background */
-  --background: rgba(0, 0, 0, 0.4); /* Darker background */
+  --color: white;
+  --background: rgba(0, 0, 0, 0.4);
   --background-hover: rgba(0, 0, 0, 0.6);
   --border-radius: 50%;
   --padding-start: 8px;
   --padding-end: 8px;
   --padding-top: 8px;
   --padding-bottom: 8px;
-  width: 36px; /* Explicit size */
+  width: 36px;
   height: 36px;
   box-shadow: 0 2px 5px rgba(0,0,0,0.2);
 }
@@ -416,16 +400,15 @@ onMounted(async () => {
 
 
 .modal-text-content {
-  padding: 20px; /* Consistent padding */
-  /* Animation applied via CSS class */
-  opacity: 0; /* Start hidden for animation */
+  padding: 20px;
+  opacity: 0;
 }
 
 .modal-title {
-  font-size: 1.6rem; /* Larger title */
+  font-size: 1.6rem;
   font-weight: 600;
   color: var(--ion-text-color);
-  margin: 0 0 16px 0; /* Adjusted margin */
+  margin: 0 0 16px 0;
   line-height: 1.3;
 }
 
@@ -443,7 +426,6 @@ onMounted(async () => {
   font-size: 1.1rem; /* Adjust size */
   margin-right: 10px;
 }
-/* Reuse news-date style */
 .date-container .news-date {
   font-size: 0.9rem;
   color: var(--ion-color-medium-shade);
@@ -471,9 +453,7 @@ onMounted(async () => {
 }
 
 
-/* --- Animation Definitions --- */
 
-/* List Item Animation (Staggered Fade-in-up) */
 .list-anim-enter-active {
   transition: all 0.5s ease-out;
   transition-delay: calc(0.08s* var(--i));
@@ -493,34 +473,30 @@ onMounted(async () => {
   transform: scale(0.9);
 }
 
-/* Modal Content Fade-in */
 @keyframes modalContentFadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
 }
-/* Apply animation to the text container */
 .modal-text-content {
   animation: modalContentFadeIn 0.4s ease-out 0.15s forwards;
-  opacity: 0; /* Start hidden */
+  opacity: 0;
 }
 
 
-/* Skeleton Pulse */
 .pulse {
   animation: pulse 1.8s infinite ease-in-out;
 }
 @keyframes pulse {
   0%, 100% {
-    opacity: 1; /* Base opacity of skeleton element */
+    opacity: 1;
   }
   50% {
-    opacity: 0.5; /* Dimmed state */
+    opacity: 0.5;
   }
 }
 
-/* News list container */
 .news-list-container {
-  padding: 1px 0; /* Avoid margin collapse issues */
+  padding: 1px 0;
 }
 
 </style>

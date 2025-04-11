@@ -26,7 +26,6 @@ export const fetchUser = async () => {
         if (!data?.claims || !data.email) throw new Error('Invalid user data');
 
         userStore.isAuthenticated = true;
-        // Set user data
         userStore.setUser({
             firstName: data.claims.firstName,
             lastName: data.claims.lastName,

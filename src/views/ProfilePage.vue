@@ -178,7 +178,6 @@ const takePhoto = async () => {
 
     if (photo.dataUrl) {
       localStorage.setItem('profileImage', photo.dataUrl);
-      // Force refresh from localStorage to ensure UI consistency
       refreshProfileImage();
     }
   } catch (error) {
@@ -199,7 +198,6 @@ const selectFromGallery = async () => {
 
     if (photo.dataUrl) {
       localStorage.setItem('profileImage', photo.dataUrl);
-      // Force refresh from localStorage to ensure UI consistency
       refreshProfileImage();
     }
   } catch (error) {
@@ -282,7 +280,6 @@ const changeDefaultPage = (page: string) => {
   defaultPage.value = page;
   localStorage.setItem('defaultPage', page);
 
-  // Force the current route to match the default page if we're on the home route
   const currentRoute = router.currentRoute.value;
   if (currentRoute.path === '/tabs/home' && page === 'timetable') {
     router.replace('/tabs/timetable');
@@ -332,8 +329,8 @@ const goLogout = async () => {
   overflow: visible;
   cursor: pointer;
   transition: transform 0.2s;
-  border-radius: 50% !important; /* Force circular shape */
-  aspect-ratio: 1/1; /* Ensure perfect square */
+  border-radius: 50% !important;
+  aspect-ratio: 1/1;
 }
 .edit-avatar-indicator {
   position: absolute;

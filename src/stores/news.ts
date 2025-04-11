@@ -46,7 +46,6 @@ export const useNewsStore = defineStore('news', () => {
   };
 
   const fetchNews = async (isBackground = false) => {
-    // Set appropriate loading state based on whether this is a background fetch
     if (!isBackground) {
       loading.value = true;
     } else {
@@ -68,7 +67,6 @@ export const useNewsStore = defineStore('news', () => {
 
       const data = await response.json();
 
-      // Check if data is different from current news
       const dataChanged = JSON.stringify(data) !== JSON.stringify(news.value);
       if (dataChanged) {
         news.value = data;
@@ -112,22 +110,17 @@ export const useNewsStore = defineStore('news', () => {
   };
 
   const initialize = async () => {
-    // First load cached news immediately
     const cachedNews = loadNewsFromLocalStorage();
     if (cachedNews.length > 0) {
       news.value = cachedNews;
     }
 
-    // Then fetch fresh data in the background
     if (cachedNews.length > 0) {
-      // If we have cached data, use background loading
       fetchNews(true);
     } else {
-      // If no cached data, show loading indicator
       await fetchNews(false);
     }
 
-    // Setup SignalR for real-time updates
     setupSignalR();
   };
 

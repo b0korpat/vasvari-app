@@ -51,7 +51,6 @@ const router = createRouter({
 });
 
 router.beforeResolve((to, from, next) => {
-    // If navigating to an empty path, redirect to the default route
     if (to.matched.length === 0) {
         next(getDefaultRoute());
     } else {
@@ -66,7 +65,6 @@ function getDefaultRoute() {
 
 router.beforeEach((to, from, next) => {
     const userStore = useUserStore();
-    // If not logged in, redirect to /login
     if (!userStore.isAuthenticated && to.path !== '/login') {
       next('/login');
     } else {

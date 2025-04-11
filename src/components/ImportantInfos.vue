@@ -29,36 +29,52 @@
         </div>
 
         <div class="schedule-tabs">
-          <ion-segment v-model="selectedScheduleType" mode="ios" swipe-gesture> <ion-segment-button value="normal"> <ion-label>Normál</ion-label>
-          </ion-segment-button>
-            <ion-segment-button value="adult"> <ion-label>Felnőtt</ion-label>
+          <ion-segment v-model="selectedScheduleType" mode="ios" swipe-gesture>
+            <ion-segment-button content-id="normal" value="normal">
+              <ion-label>Normál</ion-label>
+            </ion-segment-button>
+            <ion-segment-button content-id="adult" value="adult">
+              <ion-label>Felnőtt</ion-label>
             </ion-segment-button>
           </ion-segment>
         </div>
 
-        <div v-show="selectedScheduleType === 'normal'">
-          <transition-group name="list-anim" tag="div" class="schedule-list-normal" appear>
-            <div v-for="(item, index) in normalSchedule" :key="'normal-' + index" class="schedule-item" :style="{ '--i': index }">
-              <div class="schedule-number">{{ index + 1 }}</div> <div class="schedule-details">
-              <span class="schedule-name">{{ item.time }}</span>
-            </div>
-            </div>
-          </transition-group>
-        </div>
+        <ion-segment-view>
+          <ion-segment-content id="normal">
+            <transition-group name="list-anim" tag="div" class="schedule-list-normal" appear>
+              <div
+                  v-for="(item, index) in normalSchedule"
+                  :key="'normal-' + index"
+                  class="schedule-item"
+                  :style="{ '--i': index }">
+                <div class="schedule-number">{{ index + 1 }}</div>
+                <div class="schedule-details">
+                  <span class="schedule-name">{{ item.time }}</span>
+                </div>
+              </div>
+            </transition-group>
+          </ion-segment-content>
 
-        <div v-show="selectedScheduleType === 'adult'">
-          <div class="adult-schedule-header">
-            <ion-icon :icon="schoolOutline" class="schedule-icon"></ion-icon>
-            <span>Hétfő és szerda</span>
-          </div>
-          <transition-group name="list-anim" tag="div" class="schedule-list-adult" appear>
-            <div v-for="(item, index) in adultSchedule" :key="'adult-' + index" class="schedule-item" :style="{ '--i': index }">
-              <div class="schedule-number">{{ index + 1 }}</div> <div class="schedule-details">
-              <span class="schedule-name">{{ item.time }}</span>
+          <ion-segment-content id="adult">
+            <div class="adult-schedule-header">
+              <ion-icon :icon="schoolOutline" class="schedule-icon"></ion-icon>
+              <span>Hétfő és szerda</span>
             </div>
-            </div>
-          </transition-group>
-        </div>
+            <transition-group name="list-anim" tag="div" class="schedule-list-adult" appear>
+              <div
+                  v-for="(item, index) in adultSchedule"
+                  :key="'adult-' + index"
+                  class="schedule-item"
+                  :style="{ '--i': index }">
+                <div class="schedule-number">{{ index + 1 }}</div>
+                <div class="schedule-details">
+                  <span class="schedule-name">{{ item.time }}</span>
+                </div>
+              </div>
+            </transition-group>
+          </ion-segment-content>
+        </ion-segment-view>
+
 
       </div>
 
@@ -71,16 +87,17 @@
         <transition-group name="list-anim" tag="div" class="contact-list" appear>
           <div
               v-for="(contact, index) in contacts"
-              :key="contact.name" class="contact-item"
-              @click="openContact(contact)"
-              :style="{ '--i': index }" :class="{ 'clickable': contact.type !== 'info' }" >
+              :key="contact.name"
+              class="contact-item"
+              @click="handleContactClick(contact)"
+              :style="{ '--i': index }"
+              :class="{ 'clickable': true }" >
             <ion-icon :icon="getIconForContact(contact.type)" class="contact-icon"></ion-icon>
             <div class="contact-details">
               <div class="contact-name">{{ contact.name }}</div>
               <div class="contact-info">
                 {{ contact.info }}
-                <ion-icon v-if="contact.name === 'OM azonosító'" :icon="clipboard" class="copy-icon" @click.stop="copyOmId(contact.action)"></ion-icon>
-              </div>
+                <ion-icon v-if="contact.name === 'OM azonosító'" :icon="clipboard" class="copy-icon"></ion-icon>              </div>
             </div>
             <ion-icon v-if="contact.type !== 'info'" :icon="chevronForward" class="forward-icon"></ion-icon>
           </div>
@@ -94,6 +111,8 @@ import {
   IonIcon,
   IonLabel,
   IonSegment,
+  IonSegmentView,
+  IonSegmentContent,
   IonSegmentButton,
   toastController
 } from '@ionic/vue';
@@ -155,15 +174,15 @@ const adultSchedule = ref<ScheduleItem[]>([
 const contacts = ref<Contact[]>([
   { name: 'Iskola', info: 'info@vasvari.org', type: 'email', action: 'mailto:info@vasvari.org' },
   { name: 'Titkárság', info: '+36-62/425-322', type: 'phone', action: 'tel:+36-62/425-322' },
-  { name: 'Cím', info: 'Szeged, Gutenberg u. 11.', type: 'location', action: 'https://maps.google.com/?q=Szeged,+Gutenberg+u.+11.' }, // Use standard maps link
-  { name: 'OM azonosító', info: '203052/010', type: 'info', action: '203052/010' }, // Action holds the value to copy
+  { name: 'Cím', info: 'Szeged, Gutenberg u. 11.', type: 'location', action: 'https://maps.google.com/?q=Szeged,+Gutenberg+u.+11.' },
+  { name: 'OM azonosító', info: '203052/010', type: 'info', action: '203052/010' },
 ]);
 
 const officeHours = ref<DayHours[]>([
   { day: 'H', hours: '6:00 - 21:00' },
   { day: 'K', hours: '6:00 - 18:00' },
   { day: 'Sz', hours: '6:00 - 21:00' },
-  { day: 'Cs', hours: '9:00 - 18:00' }, // Assuming office hours might differ from building hours
+  { day: 'Cs', hours: '9:00 - 18:00' },
   { day: 'P', hours: '9:00 - 18:00' },
 ]);
 
@@ -173,36 +192,38 @@ const getIconForContact = (type: string) => {
     case 'phone': return callOutline;
     case 'location': return locationOutline;
     case 'info': return informationCircleOutline;
-    default: return peopleOutline; // Fallback
+    default: return peopleOutline;
   }
 };
 
 const isToday = (dayAbbreviation: string): boolean => {
-  const today = new Date().getDay(); // 0 = Sunday, 1 = Monday, ...
+  const today = new Date().getDay();
   const daysMap: { [key: string]: number } = { 'H': 1, 'K': 2, 'Sz': 3, 'Cs': 4, 'P': 5, 'Szo': 6, 'V': 0 };
   return daysMap[dayAbbreviation] === today;
 };
 
+const handleContactClick = (contact: Contact) => {
+  if (contact.name === 'OM azonosító') {
+    copyOmId(contact.action);
+  } else if (contact.type !== 'info') {
+    openContact(contact);
+  }
+};
 
 const openContact = (contact: Contact) => {
-  // Prevent action if it's just info type (copy handled by icon click)
   if (contact.type === 'info') {
-    // Maybe show a toast "Kattints a másolás ikonra"
     return;
   }
-  // Open link for other types if action exists
   if (contact.action) {
     try {
-      // Use '_system' for Capacitor to open externally if possible
       window.open(contact.action, '_system');
     } catch (e) {
       console.error("Failed to open link:", e);
-      window.open(contact.action, '_blank'); // Fallback to _blank
+      window.open(contact.action, '_blank');
     }
   }
 };
 
-// Specific function for copying OM ID, called by icon click
 const copyOmId = async (omId: string | undefined) => {
   if (!omId) return;
   try {
@@ -218,10 +239,10 @@ const copyOmId = async (omId: string | undefined) => {
 const showToast = async (message: string, color: string = 'success') => {
   const toast = await toastController.create({
     message: message,
-    duration: 1500, // Slightly longer duration
+    duration: 1500,
     position: 'bottom',
-    color: color, // Use dynamic color
-    cssClass: 'custom-toast' // Optional: for custom styling
+    color: color,
+    cssClass: 'custom-toast'
   });
   await toast.present();
 };
@@ -229,27 +250,25 @@ const showToast = async (message: string, color: string = 'success') => {
 </script>
 
 <style scoped>
-/* --- Base & Layout --- */
+
 .page-container {
-  padding: 16px; /* Padding for the whole page */
+  padding: 16px;
 }
 .page-load-animation {
-  /* Applied animation */
+
   opacity: 0;
 }
 
-/* --- Section Styling --- */
+
 .section-container {
-  margin-bottom: 28px; /* Space between sections */
-  /* padding: 0 10px; Removed, handled by page-container */
-  /* Animation properties */
+  margin-bottom: 28px;
+
   animation: sectionFadeInUp 0.5s ease-out forwards;
   opacity: 0;
 }
 .section-container:nth-of-type(1) { animation-delay: 0.1s; }
 .section-container:nth-of-type(2) { animation-delay: 0.2s; }
 .section-container:nth-of-type(3) { animation-delay: 0.3s; }
-/* Add more if needed */
 
 .section-header {
   display: flex;
@@ -258,7 +277,6 @@ const showToast = async (message: string, color: string = 'success') => {
   font-size: 1.15rem;
   font-weight: 600;
   color: var(--ion-text-color);
-  /* padding-left: 5px; Removed, handled by section container padding */
 }
 .section-icon {
   margin-right: 10px;
@@ -266,22 +284,21 @@ const showToast = async (message: string, color: string = 'success') => {
   color: var(--ion-color-primary);
 }
 
-/* --- Hours Grid --- */
+
 .hours-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(65px, 1fr)); /* Responsive */
+  grid-template-columns: repeat(5, minmax(auto, 1fr));
   gap: 12px;
 }
 .hours-item {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 10px 8px;
+  padding: 10px 0;
   border-radius: 8px;
   background-color: var(--ion-card-background);
   box-shadow: 0 2px 5px rgba(0,0,0,0.07);
   transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
-  /* Animation handled by transition-group */
 }
 .hours-item:hover {
   transform: translateY(-3px);
@@ -297,7 +314,7 @@ const showToast = async (message: string, color: string = 'success') => {
   margin-bottom: 6px;
   font-weight: bold;
   font-size: 0.85rem;
-  border: 1px solid var(--ion-color-medium-tint); /* Softer border */
+  border: 1px solid var(--ion-color-medium-tint);
   color: var(--ion-color-medium-shade);
   background-color: transparent;
 }
@@ -305,15 +322,14 @@ const showToast = async (message: string, color: string = 'success') => {
   background-color: var(--ion-color-primary);
   border-color: var(--ion-color-primary);
   color: var(--ion-color-primary-contrast);
-  /* animation: todayPulse 2s infinite cubic-bezier(0.4, 0, 0.2, 1); */
 }
 .hours-time {
   font-size: 0.75rem;
   color: var(--ion-color-medium-shade);
-  text-align: center; /* Center time text */
+  text-align: center;
 }
 
-/* --- Schedule --- */
+
 .schedule-tabs ion-segment {
   --background: rgba(var(--ion-color-medium-rgb), 0.1);
   border-radius: 10px;
@@ -344,18 +360,14 @@ const showToast = async (message: string, color: string = 'success') => {
   border-radius: 8px;
   background-color: var(--ion-card-background);
   box-shadow: 0 2px 5px rgba(0,0,0,0.07);
-  margin: 0 0 10px 0; /* Margin only bottom */
+  margin: 0 4px 10px 4px;
   transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
-  /* Animation handled by transition-group */
 }
-.schedule-item:hover {
-  transform: translateY(-2px); /* Subtle hover */
-  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.09);
-}
+
 .schedule-number {
   width: 28px;
   height: 28px;
-  flex-shrink: 0; /* Prevent shrinking */
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -380,7 +392,7 @@ const showToast = async (message: string, color: string = 'success') => {
   display: flex;
   align-items: center;
   padding: 10px 15px;
-  margin: 0 0 12px 0; /* Margin bottom only */
+  margin: 0 0 12px 0;
   font-size: 0.9rem;
   font-weight: 500;
   color: var(--ion-color-primary);
@@ -392,7 +404,6 @@ const showToast = async (message: string, color: string = 'success') => {
   margin-right: 8px;
 }
 
-/* --- Contact --- */
 .contact-item {
   display: flex;
   align-items: center;
@@ -444,12 +455,12 @@ const showToast = async (message: string, color: string = 'success') => {
   text-overflow: ellipsis;
 }
 .copy-icon {
-  color: var(--ion-color-primary); /* Make copy icon noticeable */
+  color: var(--ion-color-primary);
   font-size: 1.1rem;
-  margin-left: 6px; /* Space before icon */
+  margin-left: 6px;
   vertical-align: middle;
   cursor: pointer;
-  padding: 2px; /* Increase clickable area */
+  padding: 2px;
 }
 .forward-icon {
   font-size: 1rem;
@@ -459,7 +470,6 @@ const showToast = async (message: string, color: string = 'success') => {
 }
 
 
-/* --- Animation Definitions --- */
 @keyframes pageFadeIn {
   from { opacity: 0; transform: translateY(10px); }
   to { opacity: 1; transform: translateY(0); }
@@ -468,22 +478,19 @@ const showToast = async (message: string, color: string = 'success') => {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 }
-/* Apply page load animation */
 .page-load-animation {
   animation: pageFadeIn 0.4s ease-out forwards;
 }
 
 
-/* General List/Grid Item Animation */
 .list-anim-enter-active {
-  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1); /* Smoother ease */
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
   transition-delay: calc(0.06s * var(--i));
 }
 .list-anim-leave-active {
   transition: all 0.2s ease-in;
   position: absolute;
   opacity: 0;
-  /* width adjustment might be needed depending on parent */
 }
 .list-anim-enter-from {
   opacity: 0;
@@ -494,12 +501,9 @@ const showToast = async (message: string, color: string = 'success') => {
   transform: scale(0.95);
 }
 
-/* Today Badge Pulse (Optional) */
 @keyframes todayPulse {
   0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(var(--ion-color-primary-rgb), 0.4); }
   50% { transform: scale(1.05); box-shadow: 0 0 0 5px rgba(var(--ion-color-primary-rgb), 0); }
 }
-
-
 
 </style>

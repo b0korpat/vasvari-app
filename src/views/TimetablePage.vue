@@ -234,7 +234,7 @@ const initialLoadComplete = ref(false);
 
 const isSwiping = ref(false);
 const touchStartX = ref(0);
-const edgeSwipeThreshold = 50; // pixels threshold for edge swipe detection
+const edgeSwipeThreshold = 50;
 
 const isSwipingToChangeWeek = ref(false);
 
@@ -245,7 +245,6 @@ const onTouchEnd = (swiper: any, event: TouchEvent) => {
   const touchEndX = event.changedTouches[0].clientX;
   const deltaX = touchEndX - touchStartX.value;
 
-  // Check if we're at the edge and swiped past threshold
   if (swiper.isBeginning && deltaX > edgeSwipeThreshold) {
     isSwipingToChangeWeek.value = true;
     prevWeek();
@@ -256,7 +255,6 @@ const onTouchEnd = (swiper: any, event: TouchEvent) => {
 };
 
 const onSlideChange = (swiper: any) => {
-  // Ignore slide changes triggered by week changes
   if (isSwipingToChangeWeek.value) {
     isSwipingToChangeWeek.value = false;
     return;
@@ -264,7 +262,6 @@ const onSlideChange = (swiper: any) => {
 
   const newIndex = swiper.activeIndex;
 
-  // Only update if the index actually changed
   if (selectedDayIndex.value !== newIndex) {
     selectedDayIndex.value = newIndex;
   }
@@ -274,7 +271,7 @@ const goToSlide = (index: number) => {
   if (selectedDayIndex.value !== index) {
     selectedDayIndex.value = index;
     if (swiperRef.value) {
-      swiperRef.value.slideTo(index); // Slide to the selected day
+      swiperRef.value.slideTo(index);
     }
   }
 };
@@ -288,15 +285,13 @@ const prevWeek = () => {
 
   updateWeekAndDays(start, end);
 
-  // After changing week, move to the last day (Sunday)
-  selectedDayIndex.value = 6; // Go to Sunday (index 6)
+  selectedDayIndex.value = 6;
 
   fetchLessonsForCurrentWeek(start, end);
 
-  // Ensure swiper updates AFTER data might start loading and DOM updates
   nextTick(() => {
     if (swiperRef.value) {
-      swiperRef.value.slideTo(6, 0); // Immediately jump to last slide without animation
+      swiperRef.value.slideTo(6, 0);
     }
   });
 };
@@ -311,15 +306,13 @@ const nextWeek = () => {
 
   updateWeekAndDays(start, end);
 
-  // After changing week, move to the first day (Monday)
-  selectedDayIndex.value = 0; // Go to Monday (index 0)
+  selectedDayIndex.value = 0;
 
   fetchLessonsForCurrentWeek(start, end);
 
-  // Ensure swiper updates
   nextTick(() => {
     if (swiperRef.value) {
-      swiperRef.value.slideTo(0, 0); // Immediately jump to first slide without animation
+      swiperRef.value.slideTo(0, 0);
     }
   });
 };
@@ -342,26 +335,24 @@ const fetchLessonsForCurrentWeek = (start: Date, end: Date) => {
   lessonStore.refreshLessons(
       startISO,
       endISO,
-      !hasLessonsForWeek // Show loading only if no data exists for the week
+      !hasLessonsForWeek
   );
 };
 
 
-// Improved updateSelectedDay function
 const updateSelectedDay = () => {
   const today = formatDate(new Date());
   const todayIndex = daysOfWeek.value.findIndex((day) => day === today);
 
-  let targetIndex = 0; // Default to Monday
+  let targetIndex = 0;
   if (todayIndex !== -1) {
-    targetIndex = todayIndex; // Go to today if it's in the current week
+    targetIndex = todayIndex;
   }
 
-  // Only update if the index is different or swiper needs initialization
   if (selectedDayIndex.value !== targetIndex || !swiperRef.value?.initialized) {
     selectedDayIndex.value = targetIndex;
     if (swiperRef.value) {
-      swiperRef.value.slideTo(targetIndex, 0); // Go without animation initially
+      swiperRef.value.slideTo(targetIndex, 0);
     }
   }
 };
@@ -371,18 +362,15 @@ const updateSelectedDay = () => {
 const onSwiperInit = (swiperInstance: any) => {
   swiperRef.value = swiperInstance;
 
-  // Add touch start event listener
   swiperInstance.el.addEventListener('touchstart', (e: TouchEvent) => {
     touchStartX.value = e.touches[0].clientX;
     isSwiping.value = true;
   });
 
-  // Add touch end event listener
   swiperInstance.el.addEventListener('touchend', (e: TouchEvent) => {
     onTouchEnd(swiperInstance, e);
   });
 
-  // Set initial slide after swiper is ready
   updateSelectedDay();
 };
 
@@ -392,17 +380,13 @@ const hasCachedDataForWeek = computed(() => {
 });
 
 const showSkeletonForDay = (day: string) => {
-  // Show skeleton if loading AND there's no data (either cached or freshly fetched) for the day
   return lessonStore.loading && (!lessonStore.lessonsByDay[day] || lessonStore.lessonsByDay[day]?.length === 0);
 };
 
 const filteredLessons = (day: string) => {
   return lessonStore.lessonsByDay[day]?.filter((lesson) => {
-    // Always show regular lessons and Lyukasóra
     if (isRegularLesson(lesson) || lesson.name === 'Lyukasóra') return true;
-    // Show breaks only if the setting is enabled
     if (lesson.name?.startsWith('Szünet')) return showBreaksBetweenLessons.value;
-    // Hide other types if any exist
     return false;
   }) || [];
 };
@@ -421,7 +405,6 @@ const getDayAbbreviation = (day: number) => {
 
 const isCurrentDay = (day: string) => {
   const today = new Date();
-  // Compare only year, month, and day, ignoring time
   return formatDate(today) === day;
 };
 
@@ -446,7 +429,6 @@ const isCurrentLesson = (lesson: any, day: string | undefined) => {
     const lessonStartDate = new Date(lessonStartStr);
     const lessonEndDate = new Date(lessonEndStr);
 
-    // Basic check if dates are valid
     if (isNaN(lessonStartDate.getTime()) || isNaN(lessonEndDate.getTime())) {
       console.error("Invalid date created for lesson:", lesson);
       return false;
@@ -463,12 +445,10 @@ const isCurrentLesson = (lesson: any, day: string | undefined) => {
 
 const isHoliday = (day: string) => {
   const dayDate = new Date(day.replace(/\./g, '-'));
-  // Set time to midday to avoid timezone issues with date comparisons
   dayDate.setHours(12, 0, 0, 0);
   return holidayStore.holidays.some((holiday) => {
     const startDate = new Date(holiday.holiday_date);
     const endDate = new Date(holiday.end_date);
-    // Set time to avoid timezone issues
     startDate.setHours(0, 0, 0, 0);
     endDate.setHours(23, 59, 59, 999);
     return dayDate >= startDate && dayDate <= endDate;
@@ -477,7 +457,7 @@ const isHoliday = (day: string) => {
 
 const getHolidayName = (day: string) => {
   const dayDate = new Date(day.replace(/\./g, '-'));
-  dayDate.setHours(12, 0, 0, 0); // Avoid timezone issues
+  dayDate.setHours(12, 0, 0, 0);
   const holiday = holidayStore.holidays.find((h) => {
     const startDate = new Date(h.holiday_date);
     const endDate = new Date(h.end_date);
@@ -490,9 +470,8 @@ const getHolidayName = (day: string) => {
 
 const getCurrentWeek = () => {
   const now = new Date();
-  const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, ...
+  const dayOfWeek = now.getDay();
   const monday = new Date(now);
-  // Adjust to get Monday: If Sunday (0), go back 6 days. Otherwise, go back (dayOfWeek - 1) days.
   monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
   const sunday = new Date(monday);
   sunday.setDate(monday.getDate() + 6);
@@ -508,13 +487,10 @@ const doRefresh = async (event: any) => {
     const end = new Date(endStr.replace(/\./g, '-'));
     const startISO = start.toISOString().split('T')[0];
     const endISO = end.toISOString().split('T')[0];
-    // Force refresh showing loading indicator
     await lessonStore.refreshLessons(startISO, endISO, true);
-    // Optionally refresh holidays too if needed
     await holidayStore.fetchHolidays();
   } catch (error) {
     console.error('Error during refresh:', error);
-    // Handle error display to user if necessary
   } finally {
     if (event && event.target && typeof event.target.complete === 'function') {
       event.target.complete();
@@ -529,11 +505,10 @@ const getLessonNumber = (day: string, currentLessonId: string) => {
   if (!isDinamicLessonNumbers) {
     const lesson = lessonStore.lessonsByDay[day]?.find(l => l.id === currentLessonId);
     if (lesson && lesson.starttime) {
-      // Using a more flexible approach matching common school start times
       const standardTimes: { [key: string]: number } = {
-        '07:10': 0, '07:15': 0, // Allow slight variation for 0th period
+        '07:10': 0, '07:15': 0,
         '08:00': 1,
-        '08:55': 2, '09:00': 2, // Allow for 9:00 start
+        '08:55': 2, '09:00': 2,
         '09:50': 3, '09:55': 3,
         '10:45': 4, '10:50': 4,
         '11:40': 5, '11:45': 5,
@@ -542,26 +517,21 @@ const getLessonNumber = (day: string, currentLessonId: string) => {
         '14:25': 8, '14:30': 8,
         '15:20': 9, '15:25': 9,
         '16:15': 10,'16:20': 10,
-        // Add more if needed
       };
       if (standardTimes[lesson.starttime] !== undefined) {
         return standardTimes[lesson.starttime];
       }
-      // Fallback if not found - maybe return '?' or handle differently
       console.warn(`Lesson start time ${lesson.starttime} not found in standard times.`);
-      // Simple fallback: try to estimate based on hour
       const hour = parseInt(lesson.starttime.split(':')[0], 10);
-      if (hour >= 7 && hour <= 17) return hour - 7; // Very rough estimation
-      return '?'; // Indicate unknown
+      if (hour >= 7 && hour <= 17) return hour - 7;
+      return '?';
     }
-    return '?'; // Indicate unknown
+    return '?';
   }
 
-  // Dynamic numbering based on position in the filtered list for that day
-  if (!lessonStore.lessonsByDay[day]) return 1; // Should not happen if lesson exists
+  if (!lessonStore.lessonsByDay[day]) return 1;
   let count = 0;
   for (const lesson of lessonStore.lessonsByDay[day]) {
-    // Only count actual lessons, not breaks or gap lessons for numbering
     if (isRegularLesson(lesson)) {
       count++;
       if (lesson.id === currentLessonId) {
@@ -569,41 +539,35 @@ const getLessonNumber = (day: string, currentLessonId: string) => {
       }
     }
   }
-  // If the lesson itself is not regular (e.g., clicked on a break somehow?), return something indicative
   const targetLesson = lessonStore.lessonsByDay[day].find(l => l.id === currentLessonId);
   if(targetLesson && !isRegularLesson(targetLesson)) return '-';
 
-  return count + 1; // Fallback, should have been found in the loop
+  return count + 1;
 };
 
 
 const openLessonDetails = (lesson: any) => {
-  // Add the date to the lesson object for the modal header check
   const dayOfLesson = daysOfWeek.value[selectedDayIndex.value];
   selectedLesson.value = { ...lesson, date: dayOfLesson };
   isModalOpen.value = true;
 };
 
 onMounted(async () => {
-  lessonStore.loadFromLocalStorage(); // Load cached data first
+  lessonStore.loadFromLocalStorage();
 
 
-  getCurrentWeek(); // Sets currentWeek and daysOfWeek refs
+  getCurrentWeek();
   updateSelectedDay();
 
 
-  // Fetch holidays (usually doesn't need loading indicator)
   holidayStore.fetchHolidays();
 
-  // Fetch lessons for the initial week
   const [startStr, endStr] = currentWeek.value.split(' - ');
   const start = new Date(startStr.replace(/\./g, '-'));
   const end = new Date(endStr.replace(/\./g, '-'));
 
-  // Determine if loading indicator is needed
   const showLoading = !daysOfWeek.value.some(day => lessonStore.lessonsByDay[day]?.length > 0);
 
-  // Fetch lessons, potentially showing loading
   await lessonStore.refreshLessons(
       start.toISOString().split('T')[0],
       end.toISOString().split('T')[0],
@@ -612,12 +576,9 @@ onMounted(async () => {
 
   initialLoadComplete.value = true;
 
-  // Now that data might be loaded and swiper is initialized (or will be soon),
-  // ensure the correct slide is selected visually.
-  // Use nextTick to wait for potential DOM updates after data load.
   nextTick(() => {
     if (swiperRef.value) {
-      swiperRef.value.slideTo(selectedDayIndex.value, 0); // Go to initial slide without animation
+      swiperRef.value.slideTo(selectedDayIndex.value, 0);
     }
   });
 
@@ -780,7 +741,7 @@ onMounted(async () => {
 .room-pill {
   position: absolute;
   right: 12px; /* Consistent spacing */
-  top: 12px; /* Position top right */
+  top: 27px; /* Position top right */
   /* transform: translateY(-50%); */ /* Removed transform */
   background-color: var(--ion-color-primary);
   color: white;
@@ -1076,22 +1037,37 @@ p.detail-secondary {
 }
 
 .days-carousel {
-  display: flex;
-  overflow-x: auto;
-  scrollbar-width: none;
-  -ms-overflow-style: none;
-  /* margin: 0 -4px; */ /* Removed negative margin */
+  display: grid;
+  grid-template-columns: repeat(7, 1fr); /* Equal width columns */
   padding: 4px 0; /* Vertical padding only */
-}
-
-.days-carousel::-webkit-scrollbar {
-  display: none;
+  width: 100%; /* Ensure full width */
 }
 
 .day-item {
-  flex: 0 0 auto; /* Allow items to size naturally */
-  width: calc(100% / 7 - 6px); /* Distribute width, account for gap */
-  min-width: 45px; /* Minimum width */
+  width: 100%;
+  min-width: 0;
+}
+
+.day-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 4px 2px; /* Reduced horizontal padding */
+}
+
+.day-badge {
+  width: 32px; /* Slightly smaller */
+  height: 32px;
+  font-size: 0.8rem; /* Smaller text for narrow screens */
+}
+
+.date-number {
+  font-size: 0.7rem;
+  font-weight: 500;
+}
+
+.day-item {
+  min-width: 40px; /* Minimum width */
   margin: 0 3px; /* Gap between items */
   padding: 0;
   cursor: pointer;

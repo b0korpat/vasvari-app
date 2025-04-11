@@ -6,7 +6,7 @@ export interface Holiday {
   id: number;
   holiday_name: string;
   holiday_date: string;
-  end_date: string;  // Added end date
+  end_date: string;  
 }
 
 export const useHolidayStore = defineStore('holiday', () => {

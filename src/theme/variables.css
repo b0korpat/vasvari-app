@@ -73,7 +73,7 @@ http://ionicframework.com/docs/theming/ */
 }
 
 .page-load-animation {
-	animation: pageFadeIn 0.5s ease-out 0.1s forwards; /* Added slight delay */
+	animation: pageFadeIn 0.5s ease-out 0.1s forwards;
 	opacity: 0;
 }
   
