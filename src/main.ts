@@ -4,8 +4,8 @@ import { IonicVue } from "@ionic/vue";
 import App from "./App.vue";
 import router from "./router";
 import { useUserStore } from "@/stores/user";
-import { fetchUser } from "@/components/AuthFunctions";
-import { applyTheme } from "@/components/themeChange";
+import { fetchUser } from "@/components/Utils/AuthFunctions";
+import { applyTheme } from "@/components/Utils/themeChange";
 
 import "@ionic/vue/css/core.css";
 
@@ -48,11 +48,41 @@ router.beforeEach(async (to, from, next) => {
   const isAuthenticated = userStore.isAuthenticated;
   const isPublicPath = PUBLIC_PATHS.includes(to.path);
   const isOnline = navigator.onLine;
+  const wasLoggedOut = localStorage.getItem("loggedOut") === "true";
 
-  console.log(`Navigating to: ${to.path}, From: ${from.path}, Auth: ${isAuthenticated}, Online: ${isOnline}`);
+  console.log(`Navigating to: ${to.path}, From: ${from.path}, Auth: ${isAuthenticated}, Online: ${isOnline}, LoggedOut: ${wasLoggedOut}`);
 
+  // Simple offline handling - avoid complex logic
+  if (!isOnline) {
+    const hasStoredCredentials = localStorage.getItem("firstName") &&
+        localStorage.getItem("lastName") &&
+        localStorage.getItem("email");
+
+    if (hasStoredCredentials && !wasLoggedOut) {
+      // Restore user from localStorage
+      userStore.setUser({
+        firstName: localStorage.getItem("firstName") || "",
+        lastName: localStorage.getItem("lastName") || "",
+        email: localStorage.getItem("email") || "",
+        uid: localStorage.getItem("uid") || ""
+      });
+
+      if (to.path === '/login' || to.path === '/register') {
+        next(DEFAULT_PAGE_PATH);
+      } else {
+        next();
+      }
+    } else {
+      // Note: For offline with no credentials, we'll let the App.vue handle it with fallback UI
+      // This prevents routing issues causing blank screens
+      next();
+    }
+    return;
+  }
+
+  // Online mode handling below
   if (isPublicPath) {
-    if (isAuthenticated && (to.path === '/login' || to.path === '/register')) {
+    if (isAuthenticated && !wasLoggedOut && (to.path === '/login' || to.path === '/register')) {
       console.log("Already authenticated, redirecting from public auth page to default page");
       next(DEFAULT_PAGE_PATH);
     } else {
@@ -61,58 +91,40 @@ router.beforeEach(async (to, from, next) => {
     return;
   }
 
-  if (isOnline) {
-
-    try {
-      const user = await fetchUser();
-      if (user) {
-        console.log("Online: User authenticated via fetchUser");
-        next();
-      } else {
-        console.log("Online: Authentication failed, redirecting to login");
-        userStore.clearUser();
-        next("/login");
-      }
-    } catch (error) {
-      console.error("Online: Error during fetchUser:", error);
+  // Protected routes handling when online
+  try {
+    const user = await fetchUser();
+    if (user) {
+      console.log("Online: User authenticated via fetchUser");
+      localStorage.removeItem("loggedOut");
+      next();
+    } else {
+      console.log("Online: Authentication failed, redirecting to login");
       userStore.clearUser();
       next("/login");
     }
-  } else {
-    console.log("Offline: Checking local state for navigation");
-    if (isAuthenticated) {
-
-      console.log("Offline: User data found in store, allowing navigation");
-      next();
-    } else {
-      const firstName = localStorage.getItem("firstName");
-      const lastName = localStorage.getItem("lastName");
-      const email = localStorage.getItem("email");
-      const uid = localStorage.getItem("uid") || "";
-
-      if (firstName && lastName && email) {
-        console.log("Offline: User data not in store, but found in localStorage. Restoring minimal session.");
-        userStore.setUser({ firstName, lastName, email, uid });
-        next();
-      } else {
-        console.log("Offline: No user data found, redirecting to login");
-        next("/login");
-      }
-    }
+  } catch (error) {
+    console.error("Online: Error during fetchUser:", error);
+    userStore.clearUser();
+    next("/login");
   }
 });
 
 const handleOnlineStatus = async () => {
   if (navigator.onLine) {
     console.log("Application came online. Re-validating session...");
-    try {
-      await fetchUser();
-    } catch (error) {
-      console.error("Error re-validating session after coming online:", error);
+    const wasLoggedOut = localStorage.getItem("loggedOut") === "true";
+    if (!wasLoggedOut) {
+      try {
+        await fetchUser();
+      } catch (error) {
+        console.error("Error re-validating session after coming online:", error);
+      }
     }
+    // App.vue will handle the reload
   } else {
     console.log("Application went offline.");
-    location.reload();
+    // App.vue will handle offline fallback UI
   }
 };
 

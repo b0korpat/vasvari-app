@@ -5,7 +5,6 @@ import LogInPage from '../views/LoginPage.vue';
 import HomePage from '../views/HomePage.vue';
 import ProfilePage from '../views/ProfilePage.vue';
 import TimetablePage from '../views/TimetablePage.vue';
-import {useUserStore} from "@/stores/user";
 
 const routes: Array<RouteRecordRaw> = [
     {
@@ -64,8 +63,7 @@ function getDefaultRoute() {
 }
 
 router.beforeEach((to, from, next) => {
-    const userStore = useUserStore();
-    if (!userStore.isAuthenticated && to.path !== '/login') {
+    if (to.path !== '/login' && localStorage.getItem("loggedOut") === "true") {
       next('/login');
     } else {
       next();

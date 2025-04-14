@@ -109,9 +109,10 @@ import {
   eye,
   eyeOff,
 } from "ionicons/icons";
-import { setupPushNotifications } from "@/components/setupPushNotifications";
-import { fetchUser } from "@/components/AuthFunctions";
+import { setupPushNotifications } from "@/components/Utils/setupPushNotifications";
+import { fetchUser } from "@/components/Utils/AuthFunctions";
 import { toastController } from "@ionic/vue";
+import { CapacitorHttp } from "@capacitor/core";
 
 const isLoading = ref(false);
 const email = ref("");
@@ -164,41 +165,31 @@ const login = async () => {
   isLoading.value = true;
 
   try {
-    const response = await fetch(
-        "https://api.vasvariapp.hu/auth/login",
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          credentials: "include",
-          body: JSON.stringify({
-            email: email.value,
-            password: password.value,
-          }),
-        }
-    );
+    const options = {
+      url: 'https://api.vasvariapp.hu/auth/login',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      data: {
+        email: email.value,
+        password: password.value,
+      },
+    };
 
-    const data = await response.json();
-    if (response.ok) {
-      console.log("Sikeres bejelentkezés:", data);
+    const response = await CapacitorHttp.post(options);
 
-      try {
-        await setupPushNotifications();
-      } catch (error) {
-        console.error("Error setting up notifications:", error);
-      }
+    if (response.status >= 200 && response.status < 300) {
+      // Continue with app logic
+      await setupPushNotifications();
       await fetchUser();
       await router.push("/tabs/home");
     } else {
-      console.error("Sikertelen bejelentkezés:", data);
       errorMessage.value.password = "Hibás email cím vagy jelszó";
     }
   } catch (error) {
     console.error("Network error:", error);
     const toast = await toastController.create({
-      message:
-          "Hiba történt a bejelentkezés során. Ellenőrizd az internetkapcsolatot.",
+      message: "Hiba történt a bejelentkezés során. Ellenőrizd az internetkapcsolatot.",
       duration: 3000,
       position: "bottom",
       color: "danger",
@@ -212,21 +203,19 @@ const login = async () => {
 const sendPasswordResetEmail = async () => {
   isLoading.value = true;
   try {
-    const response = await fetch(
-      "https://api.vasvariapp.hu/Auth/forgotpassword",
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        credentials: "include",
-        body: JSON.stringify({
-          email: email.value,
-        }),
-      }
-    );
+    const options = {
+      url: 'https://api.vasvariapp.hu/Auth/forgotpassword',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      data: {
+        email: email.value,
+      },
+    };
 
-    if (response.ok) {
+    const response = await CapacitorHttp.post(options);
+
+    if (response.status === 200) {
       const toast = await toastController.create({
         message: "Jelszó helyreállítás elküldve, nézd meg az emaileidet",
         duration: 3000,
@@ -235,7 +224,7 @@ const sendPasswordResetEmail = async () => {
       });
       await toast.present();
     } else {
-      const errorData = await response.json();
+      const errorData = response.data || {};
       const toast = await toastController.create({
         message: errorData.message || "Sikertelen jelszó helyreállítás",
         duration: 3000,

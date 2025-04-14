@@ -60,7 +60,7 @@ import {
 } from 'ionicons/icons';
 import { defineAsyncComponent } from 'vue';
 
-import { sendFmcToServer } from '@/components/setupPushNotifications';
+import { sendFmcToServer } from '@/components/Utils/setupPushNotifications';
 import TopBar from "@/components/TopBar.vue";
 
 
@@ -68,9 +68,9 @@ const content = ref('news');
 const showScrollButton = ref(false);
 const contentElement = ref<InstanceType<typeof IonContent>>();
 
-const NewsList = defineAsyncComponent(() => import('@/components/NewsList.vue'));
-const ImportantInfos = defineAsyncComponent(() => import('@/components/ImportantInfos.vue'));
-const Holidays = defineAsyncComponent(() => import('@/components/Holidays.vue'));
+const NewsList = defineAsyncComponent(() => import('@/components/HomeComponents/NewsList.vue'));
+const ImportantInfos = defineAsyncComponent(() => import('@/components/HomeComponents/ImportantInfos.vue'));
+const Holidays = defineAsyncComponent(() => import('@/components/HomeComponents/HolidayList.vue'));
 
 const menuItems = [
   { type: 'news', icon: newspaperOutline, label: 'Hírek' },

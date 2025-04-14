@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { useUserStore } from "@/stores/user";
+import { CapacitorHttp } from '@capacitor/core';  // Using CapacitorHttp
 
 export const useLessonStore = defineStore('lessonStore', () => {
     const lessonsByDay = ref<Record<string, any[]>>({});
@@ -11,6 +12,7 @@ export const useLessonStore = defineStore('lessonStore', () => {
     const dateFormatCache = new Map<string, string>();
     const timeFormatCache = new Map<string, string>();
 
+    // Save lessons to localStorage if they change
     const saveToLocalStorage = () => {
         const lessonsToSave = JSON.stringify(lessonsByDay.value);
         if (localStorage.getItem('lessonsByDay') !== lessonsToSave) {
@@ -163,16 +165,15 @@ export const useLessonStore = defineStore('lessonStore', () => {
             const userStore = useUserStore();
             if (!userStore.isAuthenticated) throw new Error('No access token');
 
-            const response = await fetch(
-                `https://api.vasvariapp.hu/Lesson/GetLessonsByTimeframeForStudent?startDate=${startDate}&endDate=${endDate}&studentId=${userStore.uid}`,
-                {
-                    method: 'GET',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    credentials: 'include',
-                }
-            );
+            const options = {
+                url: `https://api.vasvariapp.hu/Lesson/GetLessonsByTimeframeForStudent?startDate=${startDate}&endDate=${endDate}&studentId=${userStore.uid}`,
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                credentials: 'include',
+            };
+
+            const response = await CapacitorHttp.get(options);
 
             if (response.status === 404) {
                 const updatedLessons = { ...lessonsByDay.value };
@@ -191,9 +192,9 @@ export const useLessonStore = defineStore('lessonStore', () => {
                 return true;
             }
 
-            if (!response.ok) throw new Error('Failed to fetch lesson data');
+            if (response.status !== 200) throw new Error('Failed to fetch lesson data');
 
-            const data = await response.json();
+            const data = response.data;
             lessonsByDay.value = processLessonData(data, startDate, endDate);
             saveToLocalStorage();
             return true;

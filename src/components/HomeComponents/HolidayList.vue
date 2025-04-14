@@ -45,7 +45,13 @@
               <ion-icon :icon="timeOutline" class="info-icon"></ion-icon>
               <p :class="{ 'current-days-left': currentHoliday }" class="days-left">
                 {{
-                  currentHoliday ? `${daysUntilHolidayEnd(currentHoliday)} nap a szünet végéig` : nextHoliday ? `${holidayStore.countdown[nextHoliday.id]?.days} nap hátra` : ''
+                  currentHoliday
+                      ? `${daysUntilHolidayEnd(currentHoliday)} nap a szünet végéig`
+                      : nextHoliday
+                          ? isOnline
+                              ? `${holidayStore.countdown[nextHoliday.id]?.days} nap hátra`
+                              : `${calculateDaysLeftOffline(nextHoliday.holiday_date)} nap hátra`
+                          : ''
                 }}
               </p>
             </div>
@@ -114,7 +120,7 @@
 </template>
 
 <script lang="ts" setup>
-import {computed, onMounted} from 'vue';
+import {computed, onMounted, ref} from 'vue';
 import {
   IonAccordion,
   IonAccordionGroup,
@@ -135,6 +141,15 @@ import {calendarOutline, timeOutline} from 'ionicons/icons';
 import {Holiday, useHolidayStore} from '@/stores/holiday';
 
 const holidayStore = useHolidayStore();
+
+const isOnline = ref(navigator.onLine);
+
+window.addEventListener('offline', () => {
+  isOnline.value = false;
+});
+window.addEventListener('online', () => {
+  isOnline.value = true;
+});
 
 const doRefresh = async (event: CustomEvent) => {
   await holidayStore.fetchHolidays();
@@ -175,7 +190,11 @@ const isFutureHoliday = (holiday: Holiday) => {
 const getHolidayTimeText = (holiday: Holiday) => {
   if (isCurrentHoliday(holiday)) return `${daysUntilHolidayEnd(holiday)} nap a szünet végéig`;
   if (isPastHoliday(holiday)) return 'Eltelt';
-  return `${holidayStore.countdown[holiday.id]?.days} nap hátra`;
+  if (isOnline.value) {
+    return `${holidayStore.countdown[holiday.id]?.days} nap hátra`;
+  } else {
+    return `${calculateDaysLeftOffline(holiday.holiday_date)} nap hátra`;
+  }
 };
 
 const getHolidayStatus = (holiday: Holiday) => {
@@ -198,6 +217,12 @@ const getHolidayCardClass = (holiday: Holiday) => ({
   'past-holiday-card': isPastHoliday(holiday),
   'future-holiday-card': isFutureHoliday(holiday)
 });
+
+const calculateDaysLeftOffline = (holidayDate: string) => {
+  const now = new Date().getTime();
+  const holidayTime = new Date(holidayDate).getTime();
+  return Math.floor((holidayTime - now) / (1000 * 60 * 60 * 24));
+};
 
 onMounted(async () => {
   await holidayStore.initialize();
