@@ -52,7 +52,7 @@ export const useNewsStore = defineStore('news', () => {
     } else {
       backgroundLoading.value = true;
     }
-  
+
     try {
       const options = {
         url: 'https://api.vasvariapp.hu/news',
@@ -61,21 +61,23 @@ export const useNewsStore = defineStore('news', () => {
         },
         // CapacitorHttp handles cookies automatically
       };
-  
+
       const response = await CapacitorHttp.get(options);
-  
+
       if (response.status < 200 || response.status >= 300) {
         throw new Error(`Failed to fetch news: ${response.status}`);
       }
-  
+
+      // Get the data and sort it by date (newest first)
       const data = response.data; // CapacitorHttp already parses JSON
-  
+      data.sort((a: NewsItem, b: NewsItem) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
       const dataChanged = JSON.stringify(data) !== JSON.stringify(news.value);
       if (dataChanged) {
         news.value = data;
         saveNewsToLocalStorage(data);
       }
-  
+
       return dataChanged;
     } catch (error) {
       console.error('Error fetching news:', error);
