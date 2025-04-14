@@ -1,5 +1,5 @@
-import { useUserStore } from '@/stores/user';
-import { CapacitorHttp } from '@capacitor/core';
+import {useUserStore} from '@/stores/user';
+
 
 const API_BASE = 'https://api.vasvariapp.hu/auth';
 
@@ -8,7 +8,9 @@ const handleError = (error: unknown, context: string): null => {
     return null;
 };
 
-// Fetch user details
+// Import CapacitorHttp in AuthFunctions.ts
+import { CapacitorHttp} from '@capacitor/core';
+
 export const fetchUser = async () => {
     const userStore = useUserStore();
 
@@ -16,8 +18,9 @@ export const fetchUser = async () => {
         const options = {
             url: 'https://api.vasvariapp.hu/auth/me',
             headers: {
-                'Content-Type': 'application/json',
+                'Content-Type': 'application/json'
             },
+
         };
 
         const response = await CapacitorHttp.get(options);
@@ -35,6 +38,8 @@ export const fetchUser = async () => {
                     uid: data.uid,
                 });
 
+
+
                 return data;
             }
         }
@@ -45,40 +50,43 @@ export const fetchUser = async () => {
     }
 };
 
-// Logout function
-export const logout = async () => {
+export const logout =  async () => {
     const userStore = useUserStore();
-
     try {
-        // Use CapacitorHttp for logout request to ensure cookie handling
         const options = {
             url: `${API_BASE}/logout`,
-            method: 'POST',
             headers: {
-                "Content-Type": "application/json",
+                'Content-Type': 'application/json'
             },
+            // CapacitorHttp handles cookies automatically
         };
 
         const response = await CapacitorHttp.post(options);
 
-        if (response.status >= 200 && response.status < 300) {
-            userStore.clearUser();
-            userStore.isAuthenticated = false;
+        if (response.status < 200 || response.status >= 300) throw new Error('Logout failed');
 
-            // Since cookies are automatically handled by CapacitorHttp, you don't need to manually clear them in this case.
-            console.log('Logout successful');
-            localStorage.setItem("loggedOut", "true");
-            location.reload();  // Or you can handle routing/logout in another way without page reload
-            return true;
-        } else {
-            throw new Error('Logout failed');
-        }
-    } catch (error) {
         userStore.clearUser();
         userStore.isAuthenticated = false;
 
-        // Clear cookies manually if necessary (but CapacitorHttp should do this automatically)
-        console.log("Logout failed:", error);
+
+
+        document.cookie.split(';').forEach(cookie => {
+            const eqPos = cookie.indexOf('=');
+            const name = eqPos > -1 ? cookie.slice(0, eqPos) : cookie;
+            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
+        });
+        console.log('Logout successful');
+        localStorage.setItem("loggedOut", "true");
+        location.reload();
+        return true;
+    } catch (error) {
+        userStore.clearUser();
+        userStore.isAuthenticated = false;
+        document.cookie.split(';').forEach(cookie => {
+            const eqPos = cookie.indexOf('=');
+            const name = eqPos > -1 ? cookie.slice(0, eqPos) : cookie;
+            document.cookie = `${name}=;expires=Thu, 01 Jan 1970 00:00:01 GMT;`;
+        });
         localStorage.setItem("loggedOut", "true");
         location.reload();
         return handleError(error, 'during logout');

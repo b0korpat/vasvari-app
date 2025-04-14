@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { useUserStore } from "@/stores/user";
-import { CapacitorHttp } from '@capacitor/core';  // Using CapacitorHttp
+import { CapacitorHttp } from '@capacitor/core';
 
 export const useLessonStore = defineStore('lessonStore', () => {
     const lessonsByDay = ref<Record<string, any[]>>({});
@@ -12,7 +12,6 @@ export const useLessonStore = defineStore('lessonStore', () => {
     const dateFormatCache = new Map<string, string>();
     const timeFormatCache = new Map<string, string>();
 
-    // Save lessons to localStorage if they change
     const saveToLocalStorage = () => {
         const lessonsToSave = JSON.stringify(lessonsByDay.value);
         if (localStorage.getItem('lessonsByDay') !== lessonsToSave) {
@@ -160,21 +159,21 @@ export const useLessonStore = defineStore('lessonStore', () => {
             if (backgroundLoading.value) return false;
             backgroundLoading.value = true;
         }
-
+    
         try {
             const userStore = useUserStore();
             if (!userStore.isAuthenticated) throw new Error('No access token');
-
+    
             const options = {
                 url: `https://api.vasvariapp.hu/Lesson/GetLessonsByTimeframeForStudent?startDate=${startDate}&endDate=${endDate}&studentId=${userStore.uid}`,
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                credentials: 'include',
+                // CapacitorHttp handles cookies automatically
             };
-
+    
             const response = await CapacitorHttp.get(options);
-
+    
             if (response.status === 404) {
                 const updatedLessons = { ...lessonsByDay.value };
                 Object.keys(updatedLessons).forEach(dateStr => {
@@ -182,7 +181,7 @@ export const useLessonStore = defineStore('lessonStore', () => {
                     const lessonDate = new Date(`${year}-${month}-${day}`);
                     const startDateObj = new Date(startDate);
                     const endDateObj = new Date(endDate);
-
+    
                     if (lessonDate >= startDateObj && lessonDate <= endDateObj) {
                         delete updatedLessons[dateStr];
                     }
@@ -191,10 +190,10 @@ export const useLessonStore = defineStore('lessonStore', () => {
                 saveToLocalStorage();
                 return true;
             }
-
-            if (response.status !== 200) throw new Error('Failed to fetch lesson data');
-
-            const data = response.data;
+    
+            if (response.status < 200 || response.status >= 300) throw new Error('Failed to fetch lesson data');
+    
+            const data = response.data; // CapacitorHttp already parses JSON
             lessonsByDay.value = processLessonData(data, startDate, endDate);
             saveToLocalStorage();
             return true;

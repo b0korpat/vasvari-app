@@ -1,6 +1,6 @@
-import { defineStore } from 'pinia';
-import { ref } from 'vue';
-import { HubConnection, HubConnectionBuilder } from '@microsoft/signalr';
+import {defineStore} from 'pinia';
+import {ref} from 'vue';
+import {HubConnection, HubConnectionBuilder} from '@microsoft/signalr';
 import { CapacitorHttp } from '@capacitor/core';
 
 interface NewsItem {
@@ -21,7 +21,6 @@ export const useNewsStore = defineStore('news', () => {
   const LOCAL_STORAGE_KEY = 'newsData';
   const TIMESTAMP_KEY = 'newsLastUpdated';
 
-  // Function to save news data to localStorage
   const saveNewsToLocalStorage = (data: NewsItem[]) => {
     try {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
@@ -33,7 +32,6 @@ export const useNewsStore = defineStore('news', () => {
     }
   };
 
-  // Function to load news data from localStorage
   const loadNewsFromLocalStorage = (): NewsItem[] => {
     try {
       const data = localStorage.getItem(LOCAL_STORAGE_KEY);
@@ -48,37 +46,36 @@ export const useNewsStore = defineStore('news', () => {
     }
   };
 
-  // Fetch news from the API using CapacitorHttp
   const fetchNews = async (isBackground = false) => {
     if (!isBackground) {
       loading.value = true;
     } else {
       backgroundLoading.value = true;
     }
-
+  
     try {
       const options = {
         url: 'https://api.vasvariapp.hu/news',
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include',
+        // CapacitorHttp handles cookies automatically
       };
-
+  
       const response = await CapacitorHttp.get(options);
-
-      if (response.status !== 200) {
-        throw new Error(`Failed to fetch news: ${response.statusText}`);
+  
+      if (response.status < 200 || response.status >= 300) {
+        throw new Error(`Failed to fetch news: ${response.status}`);
       }
-
-      const data = response.data;
-
+  
+      const data = response.data; // CapacitorHttp already parses JSON
+  
       const dataChanged = JSON.stringify(data) !== JSON.stringify(news.value);
       if (dataChanged) {
         news.value = data;
         saveNewsToLocalStorage(data);
       }
-
+  
       return dataChanged;
     } catch (error) {
       console.error('Error fetching news:', error);
@@ -92,12 +89,11 @@ export const useNewsStore = defineStore('news', () => {
     }
   };
 
-  // Set up SignalR connection
   const setupSignalR = () => {
     try {
       connection.value = new HubConnectionBuilder()
-        .withUrl('https://api.vasvariapp.hu/notificationHub')
-        .build();
+          .withUrl('https://api.vasvariapp.hu/notificationHub')
+          .build();
 
       connection.value.on('ReceiveMessage', (title: string, message: string) => {
         console.log(`Received message: ${title}: ${message}`);
@@ -108,15 +104,14 @@ export const useNewsStore = defineStore('news', () => {
       });
 
       connection.value
-        .start()
-        .then(() => console.log('Connected to the SignalR hub'))
-        .catch((err) => console.error('Error connecting to the SignalR hub: ', err));
+          .start()
+          .then(() => console.log('Connected to the SignalR hub'))
+          .catch((err) => console.error('Error connecting to the SignalR hub: ', err));
     } catch (error) {
       console.error('Error setting up SignalR:', error);
     }
   };
 
-  // Initialize the store and fetch cached or live news
   const initialize = async () => {
     const cachedNews = loadNewsFromLocalStorage();
     if (cachedNews.length > 0) {
@@ -124,9 +119,9 @@ export const useNewsStore = defineStore('news', () => {
     }
 
     if (cachedNews.length > 0) {
-      fetchNews(true);  // Fetch news in the background if cached data exists
+      fetchNews(true);
     } else {
-      await fetchNews(false);  // Fetch news normally if no cached data
+      await fetchNews(false);
     }
 
     setupSignalR();

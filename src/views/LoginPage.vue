@@ -112,7 +112,6 @@ import {
 import { setupPushNotifications } from "@/components/Utils/setupPushNotifications";
 import { fetchUser } from "@/components/Utils/AuthFunctions";
 import { toastController } from "@ionic/vue";
-import { CapacitorHttp } from "@capacitor/core";
 
 const isLoading = ref(false);
 const email = ref("");
@@ -154,6 +153,7 @@ const validatePasswordField = () => {
   }
 };
 
+import { CapacitorHttp } from '@capacitor/core';
 const login = async () => {
   validateEmailField();
   validatePasswordField();
@@ -168,17 +168,19 @@ const login = async () => {
     const options = {
       url: 'https://api.vasvariapp.hu/auth/login',
       headers: {
-        'Content-Type': 'application/json',
+        'Content-Type': 'application/json'
       },
       data: {
         email: email.value,
-        password: password.value,
-      },
+        password: password.value
+      }
     };
 
     const response = await CapacitorHttp.post(options);
 
     if (response.status >= 200 && response.status < 300) {
+
+
       // Continue with app logic
       await setupPushNotifications();
       await fetchUser();
@@ -199,23 +201,23 @@ const login = async () => {
     isLoading.value = false;
   }
 };
-
 const sendPasswordResetEmail = async () => {
   isLoading.value = true;
   try {
     const options = {
-      url: 'https://api.vasvariapp.hu/Auth/forgotpassword',
+      url: "https://api.vasvariapp.hu/Auth/forgotpassword",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       data: {
         email: email.value,
       },
+      // CapacitorHttp handles cookies automatically
     };
 
     const response = await CapacitorHttp.post(options);
 
-    if (response.status === 200) {
+    if (response.status >= 200 && response.status < 300) {
       const toast = await toastController.create({
         message: "Jelszó helyreállítás elküldve, nézd meg az emaileidet",
         duration: 3000,
@@ -224,7 +226,7 @@ const sendPasswordResetEmail = async () => {
       });
       await toast.present();
     } else {
-      const errorData = response.data || {};
+      const errorData = response.data; // CapacitorHttp already parses JSON
       const toast = await toastController.create({
         message: errorData.message || "Sikertelen jelszó helyreállítás",
         duration: 3000,

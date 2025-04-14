@@ -26,28 +26,28 @@ export const useHolidayStore = defineStore('holiday', () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        credentials: 'include',
+        // CapacitorHttp handles cookies automatically
       };
-
+  
       const response = await CapacitorHttp.get(options);
-
-      if (response.status !== 200) {
+  
+      if (response.status < 200 || response.status >= 300) {
         throw new Error('Failed to fetch holiday data');
       }
-
+  
       const data = response.data;
       holidays.value = data.map((item: any) => ({
         id: item.id,
         holiday_name: item.name,
         holiday_date: item.startDate,
-        end_date: item.endDate || calculateEndDate(item.startDate),
+        end_date: item.endDate || calculateEndDate(item.startDate)
       }));
-
+  
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(holidays.value));
       startCountdown();
       console.log('Holidays fetched successfully:', holidays.value);
     } catch (err) {
-      console.error('Error fetching holidays:', err);
+      console.error('Fetch error:', err);
       const storedHolidays = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (storedHolidays) {
         holidays.value = JSON.parse(storedHolidays);
@@ -59,26 +59,27 @@ export const useHolidayStore = defineStore('holiday', () => {
 
   const calculateEndDate = (startDate: string) => {
     const date = new Date(startDate);
-    date.setDate(date.getDate() + 7);  // Set end date 7 days after the start date
+    date.setDate(date.getDate() + 7);
     return date.toISOString();
   };
 
   const setupSignalR = () => {
     connection.value = new HubConnectionBuilder()
-      .withUrl('https://api.vasvariapp.hu/notificationHub')
-      .build();
+        .withUrl('https://api.vasvariapp.hu/notificationHub')
+        .build();
 
     connection.value.on('ReceiveMessage', (title: string, message: string) => {
       console.log(`Received message: ${title}: ${message}`);
+
       if (title === 'Break') {
-        fetchHolidays();  // Fetch holidays when a "Break" message is received
+        fetchHolidays();
       }
     });
 
     connection.value
-      .start()
-      .then(() => console.log('Connected to the SignalR hub'))
-      .catch((err) => console.error('Error connecting to the SignalR hub: ', err));
+        .start()
+        .then(() => console.log('Connected to the SignalR hub'))
+        .catch((err) => console.error('Error connecting to the SignalR hub: ', err));
   };
 
   const startCountdown = () => {
@@ -100,6 +101,7 @@ export const useHolidayStore = defineStore('holiday', () => {
     const timeDiff = holidayDate - now;
 
     const days = Math.floor(timeDiff / (1000 * 60 * 60 * 24));
+
     return { days };
   };
 
@@ -113,7 +115,7 @@ export const useHolidayStore = defineStore('holiday', () => {
   const calculateDuration = (holiday: Holiday) => {
     const startDate = new Date(holiday.holiday_date).getTime();
     const endDate = new Date(holiday.end_date).getTime();
-    return Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+    return Math.ceil((endDate - startDate) / (1000 * 60 * 60 * 24))+1;
   };
 
   const initialize = async () => {
