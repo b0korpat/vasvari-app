@@ -4,7 +4,7 @@ import { IonicVue } from "@ionic/vue";
 import App from "./App.vue";
 import router from "./router";
 import { useUserStore } from "@/stores/user";
-import { fetchUser } from "@/components/Utils/AuthFunctions";
+import { fetchUser, refreshToken} from "@/components/Utils/AuthFunctions";
 import { applyTheme } from "@/components/Utils/themeChange";
 
 import "@ionic/vue/css/core.css";
@@ -93,6 +93,7 @@ router.beforeEach(async (to, from, next) => {
 
   // Protected routes handling when online
   try {
+    await refreshToken();
     const user = await fetchUser();
     if (user) {
       console.log("Online: User authenticated via fetchUser");
@@ -116,6 +117,7 @@ const handleOnlineStatus = async () => {
     const wasLoggedOut = localStorage.getItem("loggedOut") === "true";
     if (!wasLoggedOut) {
       try {
+        await refreshToken();
         await fetchUser();
       } catch (error) {
         console.error("Error re-validating session after coming online:", error);

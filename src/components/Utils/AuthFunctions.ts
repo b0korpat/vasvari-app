@@ -50,6 +50,42 @@ export const fetchUser = async () => {
     }
 };
 
+export const refreshToken = async (): Promise<boolean> => {
+    console.log("Attempting to refresh token...");
+    try {
+        const options = {
+            url: `${API_BASE}/refresh`,
+            headers: {
+                'Content-Type': 'application/json'
+            },
+        };
+
+        const response = await CapacitorHttp.post(options);
+
+        if (response.status >= 200 && response.status < 300) {
+            console.log("Token refreshed successfully.");
+
+            return true;
+        } else {
+            console.error(`Token refresh failed with status: ${response.status}`);
+            const userStore = useUserStore();
+            userStore.clearUser();
+            userStore.isAuthenticated = false;
+            localStorage.setItem("loggedOut", "true");
+            location.reload();
+            return false;
+        }
+    } catch (error) {
+        console.error("Error during token refresh:", error);
+        const userStore = useUserStore();
+        userStore.clearUser();
+        userStore.isAuthenticated = false;
+        localStorage.setItem("loggedOut", "true");
+        location.reload();
+        return false;
+    }
+};
+
 export const logout =  async () => {
     const userStore = useUserStore();
     try {
@@ -58,7 +94,6 @@ export const logout =  async () => {
             headers: {
                 'Content-Type': 'application/json'
             },
-            // CapacitorHttp handles cookies automatically
         };
 
         const response = await CapacitorHttp.post(options);

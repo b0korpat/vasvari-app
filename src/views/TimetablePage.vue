@@ -1071,7 +1071,6 @@ p.detail-secondary {
   margin: 0 3px; /* Gap between items */
   padding: 0;
   cursor: pointer;
-  /* Removed transition here, handled by child */
 }
 
 .day-item:active .day-wrapper {
@@ -1134,9 +1133,7 @@ p.detail-secondary {
   font-weight: 600; /* Bold date number */
 }
 
-.selected-day.today .day-badge {
-  /* Already styled by .selected-day .day-badge */
-}
+
 
 
 /* --- Animation Definitions --- */

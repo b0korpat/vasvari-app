@@ -26,7 +26,6 @@ export const useHolidayStore = defineStore('holiday', () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        // CapacitorHttp handles cookies automatically
       };
   
       const response = await CapacitorHttp.get(options);

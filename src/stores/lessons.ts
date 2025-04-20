@@ -250,6 +250,9 @@ export const useLessonStore = defineStore('lessonStore', () => {
         loading,
         backgroundLoading,
         lastUpdate,
+        processLessonData,
+        formatDate,
+        formatTime,
         loadFromLocalStorage,
         fetchLessons,
         refreshLessons

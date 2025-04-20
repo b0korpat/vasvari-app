@@ -15,7 +15,7 @@ import { IonApp, IonRouterOutlet, alertController } from '@ionic/vue';
 import { onMounted, ref } from 'vue';
 
 const UPDATE_CHECK_URL = "https://b0korpat.github.io/mobil_dist/update.json";
-const CURRENT_APP_VERSION = `v0.1.4`;
+const CURRENT_APP_VERSION = `v0.1.5`;
 const showFallback = ref(false);
 
 onMounted(async () => {
