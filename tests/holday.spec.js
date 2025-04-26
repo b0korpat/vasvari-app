@@ -26,11 +26,8 @@ afterEach(() => {
 
 describe('Holiday Store', () => {
     beforeEach(() => {
-        // Create a fresh pinia instance and activate it before each test
         setActivePinia(createPinia());
-        // Clear localStorage mock between tests
         localStorage.clear();
-        // Reset mocks
         vi.clearAllMocks();
     });
 

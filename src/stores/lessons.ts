@@ -165,7 +165,7 @@ export const useLessonStore = defineStore('lessonStore', () => {
             if (!userStore.isAuthenticated) throw new Error('No access token');
     
             const options = {
-                url: `https://api.vasvariapp.hu/Lesson/GetLessonsByTimeframeForStudent?startDate=${startDate}&endDate=${endDate}&studentId=${userStore.uid}`,
+                url: `https://api.vasvariapp.hu/Lesson/GetLessonsByTimeframeForStudent?startDate=${startDate}&endDate=${endDate+"T23:59:59"}&studentId=${userStore.uid}`,
                 headers: {
                     'Content-Type': 'application/json',
                 },
